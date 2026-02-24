@@ -1,0 +1,22 @@
+{
+  "name": "marketplace-scrape",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "start": "tsx main.ts",
+    "rotate": "tsx scripts/update-env-from-fetch.ts fetch.txt"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "module",
+  "devDependencies": {
+    "@types/node": "^25.3.0",
+    "tsx": "^4.21.0"
+  },
+  "dependencies": {
+    "dotenv": "^17.3.1",
+    "zod": "^4.3.6"
+  }
+}
