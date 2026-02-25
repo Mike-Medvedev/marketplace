@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "start": "tsx main.ts",
+    "start": "tsx --env-file .env ./src/server.ts",
     "rotate": "tsx scripts/update-env-from-fetch.ts fetch.txt"
   },
   "keywords": [],
@@ -12,11 +12,13 @@
   "license": "ISC",
   "type": "module",
   "devDependencies": {
+    "@types/express": "^5.0.6",
     "@types/node": "^25.3.0",
     "tsx": "^4.21.0"
   },
   "dependencies": {
     "dotenv": "^17.3.1",
+    "express": "^5.2.1",
     "zod": "^4.3.6"
   }
 }

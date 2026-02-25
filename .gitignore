@@ -1,4 +1,5 @@
 .env
+log.json
 node_modules/
 update-env-from-fetch.ts
 fetch.txt
