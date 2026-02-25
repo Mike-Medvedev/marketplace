@@ -1,4 +1,4 @@
-import type { MarketplaceListing } from "./searchMarketPlace.ts";
+import type { MarketplaceListing } from "../search/search.types.ts";
 
 export async function filterListings(
   listings: MarketplaceListing[],
