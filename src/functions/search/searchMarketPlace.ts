@@ -27,7 +27,7 @@ import logger from "@/logger/logger";
 /** Performs a Marketplace search.
  * @param [params={}] - Search options
  * @param [params.cursor] - Pagination cursor from previous response. Omit for first page.
- * @param [params.pageCount] - Fetch exactly this many pages (e.g. 5 for page1..page5).
+ * @param [params.pageCount] - Fetch exactly this many pages.
  * @param [params.pageDelayMs=5000] - Delay in ms between pagination requests to avoid rate limiting.
  * @param [params.listingFetchDelayMs=1500] - Delay in ms between each listing's photo+description fetch.
  */
@@ -41,20 +41,16 @@ export async function searchMarketPlace(
     listingFetchDelayMs = DEFAULT_LISTING_FETCH_DELAY_MS,
   } = params;
 
-  if (pageCount == null || 1) {
+  if (pageCount == null || pageCount <= 1) {
     logger.info(
       `Page count set to 1, fetching a single page with delay of ${listingFetchDelayMs}ms...`,
     );
     return fetchOnePage(cursor, listingFetchDelayMs);
   }
 
-  const pages: Record<string, MarketplaceListing[]> = {};
+  const allListings: MarketplaceListing[] = [];
   let nextCursor: string | null = cursor;
   let pageNum = 1;
-
-  const shouldContinue = () => {
-    if (pageCount != null) return pageNum <= pageCount;
-  };
 
   /**
    * Main loop that searches marketplace until we have searched the desired pages
@@ -62,21 +58,19 @@ export async function searchMarketPlace(
    */
   do {
     const page = await fetchOnePage(nextCursor, listingFetchDelayMs);
-    pages[`page${pageNum}`] = page.listings;
+    allListings.push(...page.listings);
     pageNum++;
-    nextCursor = page.nextCursor; //returns this cursor to next fetch
+    nextCursor = page.nextCursor;
     logger.info("Fetched one page of listings...");
-    if (nextCursor != null && shouldContinue() && pageDelayMs > 0) {
+    if (nextCursor != null && pageNum <= pageCount && pageDelayMs > 0) {
       logger.info(`Delaying next page to avoid rate limit for ${pageDelayMs}ms`);
       await delay(pageDelayMs);
     }
-  } while (nextCursor != null && shouldContinue());
+  } while (nextCursor != null && pageNum <= pageCount);
   logger.info("Successfully completed marketplace search!");
 
-  const listings = Object.values(pages).flat();
   return {
-    listings,
-    pages,
+    listings: allListings,
     nextCursor,
   };
 }
@@ -104,17 +98,16 @@ async function fetchOnePage(
       };
     };
   };
-
   const feedUnits = json.data?.marketplace_search?.feed_units;
   if (!feedUnits?.edges) {
-    return { listings: [], pages: {}, nextCursor: null };
+    return { listings: [], nextCursor: null };
   }
-
+  logger.info(`------fetched ${feedUnits.edges.length} listings from marketplace`);
   const rawListings = feedUnits.edges.map((edge) => edge.node.listing);
   const listings = await addPhotosAndDescriptions(rawListings, listingFetchDelayMs);
   const nextCursor = feedUnits.page_info?.end_cursor ?? null;
 
-  return { listings, pages: { page1: listings }, nextCursor };
+  return { listings, nextCursor };
 }
 
 // --- Helpers ---

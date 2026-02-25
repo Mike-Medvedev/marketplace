@@ -28,9 +28,9 @@ const app = express();
 app.post("/scrape", async (req, res) => {
   logger.info("Request recieved, kicking off marketplace search...");
 
-  const { pages } = await searchMarketPlace({ pageCount: 1 });
-  const logged = await logListings(pages);
-  const filtered = await filterListings(logged);
+  const { listings } = await searchMarketPlace({ pageCount: 1 });
+  const filtered = await filterListings(listings);
+  const logged = await logListings(filtered);
   const analyzed = await analyzeListings(filtered);
   await notifyMe(analyzed);
 
