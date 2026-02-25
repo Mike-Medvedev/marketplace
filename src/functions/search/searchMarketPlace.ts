@@ -6,12 +6,13 @@ import {
 } from "@/requests";
 import type {
   MarketplaceListing,
+  MarketplaceSearchConfig,
   SearchMarketPlaceParams,
   SearchMarketPlaceResult,
   SearchResponseEdge,
   RawListing,
 } from "./search.types";
-import { delay } from "./search.utils";
+import { delay, pickSearchConfig } from "./search.utils";
 import {
   DEFAULT_LISTING_FETCH_DELAY_MS,
   DEFAULT_PAGE_COUNT,
@@ -30,6 +31,19 @@ import logger from "@/logger/logger";
  * @param [params.pageCount] - Fetch exactly this many pages.
  * @param [params.pageDelayMs=5000] - Delay in ms between pagination requests to avoid rate limiting.
  * @param [params.listingFetchDelayMs=1500] - Delay in ms between each listing's photo+description fetch.
+ * @param [params.query] - Search query (default "vintage guitars").
+ * @param [params.locationId] - Facebook location slug (default "sac").
+ * @param [params.minPrice] - Minimum price filter (default 0).
+ * @param [params.radiusKm] - Search radius in km, max 805 (~500 miles).
+ * @example
+ * // Custom search
+ * const { listings } = await searchMarketPlace({
+ *   pageCount: 2,
+ *   query: "vintage stratocaster",
+ *   locationId: "sf",
+ *   minPrice: 500,
+ *   radiusKm: 400, // optional, defaults to 805
+ * });
  */
 export async function searchMarketPlace(
   params: SearchMarketPlaceParams = {},
@@ -41,11 +55,13 @@ export async function searchMarketPlace(
     listingFetchDelayMs = DEFAULT_LISTING_FETCH_DELAY_MS,
   } = params;
 
+  const searchConfig = pickSearchConfig(params);
+
   if (pageCount == null || pageCount <= 1) {
     logger.info(
       `Page count set to 1, fetching a single page with delay of ${listingFetchDelayMs}ms...`,
     );
-    return fetchOnePage(cursor, listingFetchDelayMs);
+    return fetchOnePage(cursor, listingFetchDelayMs, searchConfig);
   }
 
   const allListings: MarketplaceListing[] = [];
@@ -57,7 +73,7 @@ export async function searchMarketPlace(
    * Delay added between loops to avoid rate-limiting and anti-bot
    */
   do {
-    const page = await fetchOnePage(nextCursor, listingFetchDelayMs);
+    const page = await fetchOnePage(nextCursor, listingFetchDelayMs, searchConfig);
     allListings.push(...page.listings);
     pageNum++;
     nextCursor = page.nextCursor;
@@ -75,12 +91,16 @@ export async function searchMarketPlace(
   };
 }
 
-/** Fetches a single page of search results using  Relay's Cursor from prev response. */
+/** Fetches a single page of search results using Relay's Cursor from prev response. */
 async function fetchOnePage(
   cursor: string | null,
   listingFetchDelayMs: number = DEFAULT_LISTING_FETCH_DELAY_MS,
+  searchConfig?: Partial<MarketplaceSearchConfig>,
 ): Promise<SearchMarketPlaceResult> {
-  const response = await fetch(FB_GRAPHQL_URL, marketplaceSearchRequestConfig(cursor));
+  const response = await fetch(
+    FB_GRAPHQL_URL,
+    marketplaceSearchRequestConfig(cursor, searchConfig),
+  );
 
   if (!response.ok) {
     throw new SearchMarketPlaceError(
