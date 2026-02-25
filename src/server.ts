@@ -17,25 +17,32 @@ import {
   logListings,
 } from "@/functions";
 
-import express, { json } from "express";
+import express from "express";
+import logger from "@/logger/logger";
+import errorHandler from "@/middleware/error.middleware";
 const app = express();
-app.use(json());
 
 /**
  * Fetches facebook marketplace listings and analyzes images with vision learning model
  */
-app.post("/scrape", (req, res) => {
-  searchMarketPlace({ pageCount: 1 })
-    .then(({ pages }) => logListings(pages))
-    .then((logged) => filterListings(logged))
-    .then((filtered) => analyzeListings(filtered))
-    .then((analyzed) => notifyMe(analyzed))
-    .then((analyzed) => res.json({ listings: analyzed }))
-    .catch((error) => {
-      console.error(error);
-      res.status(500).json({ error: String(error) });
-    });
+app.post("/scrape", async (req, res) => {
+  logger.info("Request recieved, kicking off marketplace search...");
+
+  const { pages } = await searchMarketPlace({ pageCount: 1 });
+  const logged = await logListings(pages);
+  const filtered = await filterListings(logged);
+  const analyzed = await analyzeListings(filtered);
+  await notifyMe(analyzed);
+
+  res.sendStatus(200);
 });
+
+app.post("/webhook/analyzed-listings", async (req, res) => {
+  logger.info("Recieved analyzed listings in webhook, notifying user");
+  logger.info(req.body);
+  res.sendStatus(200);
+});
+app.use(errorHandler);
 
 const server = app.listen(env.PORT, () => console.log(`Server listening on port ${env.PORT}`));
 

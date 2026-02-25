@@ -4,74 +4,47 @@ import {
   marketplaceProductListingPhotosRequestConfig,
   marketplaceProductListingDescriptionRequestConfig,
 } from "@/requests";
+import type {
+  MarketplaceListing,
+  SearchMarketPlaceParams,
+  SearchMarketPlaceResult,
+  SearchResponseEdge,
+  RawListing,
+} from "./search.types";
+import { delay } from "./search.utils";
+import {
+  DEFAULT_LISTING_FETCH_DELAY_MS,
+  DEFAULT_PAGE_COUNT,
+  DEFAULT_PAGE_DELAY_MS,
+} from "./search.constants";
+import {
+  FetchListingDescriptionError,
+  FetchListingPhotosError,
+  SearchMarketPlaceError,
+} from "@/errors/errors";
+import logger from "@/logger/logger";
 
-// --- Types ---
-
-export interface MarketplaceListing {
-  id: string;
-  url: string;
-  price: string;
-  title: string;
-  location: string;
-  primaryPhotoUri: string;
-  photos: { uri: string }[];
-  description: string;
-}
-
-export interface SearchMarketPlaceParams {
-  /** Pagination cursor from previous response. Omit for first page. */
-  cursor?: string | null;
-  /** Fetch exactly this many pages (e.g. 5 for page1..page5). */
-  pageCount?: number;
-  /** Fetch pages until we have this many listings (e.g. 500). Omit for single page. */
-  desiredCount?: number;
-  /** Delay in ms between pagination requests to avoid rate limiting (default 5000). */
-  pageDelayMs?: number;
-  /** Delay in ms between each listing's photo+description fetch to avoid rate limiting (default 1500). */
-  listingFetchDelayMs?: number;
-}
-
-export interface SearchMarketPlaceResult {
-  listings: MarketplaceListing[];
-  /** Pages keyed by page1, page2, ... for logging. */
-  pages: Record<string, MarketplaceListing[]>;
-  /** Cursor for next page. Use in next call to continue pagination. */
-  nextCursor: string | null;
-}
-
-interface SearchResponseEdge {
-  node: { listing: RawListing };
-}
-
-interface RawListing {
-  id: string;
-  listing_price: { amount: string };
-  marketplace_listing_title: string;
-  location: { reverse_geocode: string };
-  primary_listing_photo: { image: { uri: string } };
-}
-
-// --- Main ---
-
-const DEFAULT_PAGE_DELAY_MS = 5_000;
-const DEFAULT_LISTING_FETCH_DELAY_MS = 1_500;
-
-function delay(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
-
+/** Performs a Marketplace search.
+ * @param [params={}] - Search options
+ * @param [params.cursor] - Pagination cursor from previous response. Omit for first page.
+ * @param [params.pageCount] - Fetch exactly this many pages (e.g. 5 for page1..page5).
+ * @param [params.pageDelayMs=5000] - Delay in ms between pagination requests to avoid rate limiting.
+ * @param [params.listingFetchDelayMs=1500] - Delay in ms between each listing's photo+description fetch.
+ */
 export async function searchMarketPlace(
   params: SearchMarketPlaceParams = {},
 ): Promise<SearchMarketPlaceResult> {
   const {
     cursor = null,
-    pageCount,
-    desiredCount,
+    pageCount = DEFAULT_PAGE_COUNT,
     pageDelayMs = DEFAULT_PAGE_DELAY_MS,
     listingFetchDelayMs = DEFAULT_LISTING_FETCH_DELAY_MS,
   } = params;
 
-  if (pageCount == null && desiredCount == null) {
+  if (pageCount == null || 1) {
+    logger.info(
+      `Page count set to 1, fetching a single page with delay of ${listingFetchDelayMs}ms...`,
+    );
     return fetchOnePage(cursor, listingFetchDelayMs);
   }
 
@@ -81,19 +54,24 @@ export async function searchMarketPlace(
 
   const shouldContinue = () => {
     if (pageCount != null) return pageNum <= pageCount;
-    return Object.values(pages).flat().length < (desiredCount ?? 0);
   };
 
+  /**
+   * Main loop that searches marketplace until we have searched the desired pages
+   * Delay added between loops to avoid rate-limiting and anti-bot
+   */
   do {
     const page = await fetchOnePage(nextCursor, listingFetchDelayMs);
     pages[`page${pageNum}`] = page.listings;
     pageNum++;
-    nextCursor = page.nextCursor;
-
+    nextCursor = page.nextCursor; //returns this cursor to next fetch
+    logger.info("Fetched one page of listings...");
     if (nextCursor != null && shouldContinue() && pageDelayMs > 0) {
+      logger.info(`Delaying next page to avoid rate limit for ${pageDelayMs}ms`);
       await delay(pageDelayMs);
     }
   } while (nextCursor != null && shouldContinue());
+  logger.info("Successfully completed marketplace search!");
 
   const listings = Object.values(pages).flat();
   return {
@@ -103,7 +81,7 @@ export async function searchMarketPlace(
   };
 }
 
-/** Fetches a single page of search results (~24 listings). */
+/** Fetches a single page of search results using  Relay's Cursor from prev response. */
 async function fetchOnePage(
   cursor: string | null,
   listingFetchDelayMs: number = DEFAULT_LISTING_FETCH_DELAY_MS,
@@ -111,7 +89,9 @@ async function fetchOnePage(
   const response = await fetch(FB_GRAPHQL_URL, marketplaceSearchRequestConfig(cursor));
 
   if (!response.ok) {
-    throw new Error(`Search request failed: ${response.status} ${response.statusText}`);
+    throw new SearchMarketPlaceError(
+      `Search request failed: ${response.status} ${response.statusText}`,
+    );
   }
 
   const json = (await response.json()) as {
@@ -160,14 +140,16 @@ async function addPhotosAndDescriptions(
   for (let i = 0; i < rawListings.length; i++) {
     const listing = rawListings[i]!;
     const details = extractListingDetails(listing);
-    const [photos, description] = await Promise.all([
-      fetchListingPhotos(listing.id),
-      fetchListingDescription(listing.id),
-    ]);
+    logger.info(`fetching photos and description for listing with title: ${details.title}`);
+    /** Make sure not to call these at the same time to avoid anti-scraping */
+    const photos = await fetchListingPhotos(listing.id);
+    logger.info(`fetched photos, delaying for ${delayMs}ms until fetching description`);
+    await delay(delayMs);
+    const description = await fetchListingDescription(listing.id);
+    logger.info(`fetched description, delaying for ${delayMs}ms until fetching next listing`);
+    await delay(delayMs);
+
     results.push({ ...details, photos, description });
-    if (i < rawListings.length - 1 && delayMs > 0) {
-      await delay(delayMs);
-    }
   }
   return results;
 }
@@ -179,7 +161,9 @@ async function fetchListingPhotos(listingId: string): Promise<{ uri: string }[]>
   );
 
   if (!response.ok) {
-    return [];
+    throw new FetchListingPhotosError(
+      `Fetch failed for Listing photos for listing id: ${listingId}`,
+    );
   }
 
   const json = (await response.json()) as {
@@ -197,11 +181,18 @@ async function fetchListingPhotos(listingId: string): Promise<{ uri: string }[]>
 }
 
 async function fetchListingDescription(listingId: string): Promise<string> {
-  const res = await fetch(
+  const response = await fetch(
     "https://www.facebook.com/api/graphql/",
     marketplaceProductListingDescriptionRequestConfig(listingId),
   );
-  const json = (await res.json()) as {
+
+  if (!response.ok) {
+    throw new FetchListingDescriptionError(
+      `Fetch failed for Listing photos for listing id: ${listingId}`,
+    );
+  }
+
+  const json = (await response.json()) as {
     data?: {
       viewer?: {
         marketplace_product_details_page?: {
