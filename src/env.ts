@@ -2,6 +2,7 @@ import "dotenv/config";
 import { z } from "zod";
 
 const envSchema = z.object({
+  PORT: z.number().min(1),
   FB_COOKIE: z.string().min(1),
   FB_USER_ID: z.string().min(1),
   FB_DTSG: z.string().min(1),
@@ -23,7 +24,7 @@ const envSchema = z.object({
   FB_SEC_CH_UA: z.string().min(1),
   FB_SEC_CH_UA_FULL_VERSION_LIST: z.string().min(1),
   FB_SEC_CH_UA_MOBILE: z.string().min(1),
-  FB_SEC_CH_UA_MODEL: z.string().transform((s) => (s || '""')), // often "" for desktop
+  FB_SEC_CH_UA_MODEL: z.string().transform((s) => s || '""'), // often "" for desktop
   FB_SEC_CH_UA_PLATFORM: z.string().min(1),
   FB_SEC_CH_UA_PLATFORM_VERSION: z.string().min(1),
   FB_SEC_CH_PREFERS_COLOR_SCHEME: z.string().min(1),
