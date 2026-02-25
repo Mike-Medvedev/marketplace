@@ -1,0 +1,3 @@
+export const DEFAULT_PAGE_DELAY_MS = 5_000;
+export const DEFAULT_LISTING_FETCH_DELAY_MS = 1_500;
+export const DEFAULT_PAGE_COUNT = 1;
