@@ -3,6 +3,7 @@ import {
   FetchListingPhotosError,
   SearchMarketPlaceError,
 } from "@/errors/errors";
+import { APIError } from "openai";
 import logger from "@/logger/logger";
 import type { ErrorRequestHandler, Request, Response, NextFunction } from "express";
 const errorHandler: ErrorRequestHandler = function (
@@ -20,6 +21,10 @@ const errorHandler: ErrorRequestHandler = function (
     res.sendStatus(500);
   }
   if (error instanceof FetchListingDescriptionError) {
+    logger.error(error);
+    res.sendStatus(500);
+  }
+  if (error instanceof APIError) {
     logger.error(error);
     res.sendStatus(500);
   } else {
