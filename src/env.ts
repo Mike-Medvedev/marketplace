@@ -2,7 +2,7 @@ import "dotenv/config";
 import { z } from "zod";
 
 const envSchema = z.object({
-  PORT: z.number().min(1),
+  PORT: z.coerce.number().min(1),
   FB_COOKIE: z.string().min(1),
   FB_USER_ID: z.string().min(1),
   FB_DTSG: z.string().min(1),

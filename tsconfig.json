@@ -12,9 +12,11 @@
 
     // Environment Settings
     // See also https://aka.ms/tsconfig/module
-    "module": "nodenext",
-    "moduleResolution": "bundler",
     "target": "esnext",
+    "esModuleInterop": true,
+    "resolveJsonModule": true,
+    "module": "esnext",
+    "moduleResolution": "bundler",
     // For nodejs:
     "lib": ["esnext"],
     "types": ["node"],

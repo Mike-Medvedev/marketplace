@@ -8,43 +8,42 @@
 // Step 7: verification pipeline with use roboflow to tell whether its vintage or not
 // Step 8: roboflow calls webhook and notifies me with listing.
 import { env } from "@/env.ts";
-import {
-  marketplaceSearchRequestConfig,
-  marketplaceProductListingPhotosRequestConfig,
-  marketplaceProductListingDescriptionRequestConfig,
-} from "@/requests";
 
 import {
   searchMarketPlace,
   filterListings,
   analyzeListings,
   notifyMe,
+  logListings,
 } from "@/functions";
 
-import express from "express";
+import express, { json } from "express";
 const app = express();
+app.use(json());
 
 /**
  * Fetches facebook marketplace listings and analyzes images with vision learning model
- * @returns void
  */
-app.post("/scrape", async () => {
-  searchMarketPlace()
-    .then(() => filterListings())
-    .then(() => analyzeListings())
-    .then(() => notifyMe())
-    .catch((error) => console.log(error));
+app.post("/scrape", (req, res) => {
+  searchMarketPlace({ pageCount: 1 })
+    .then(({ pages }) => logListings(pages))
+    .then((logged) => filterListings(logged))
+    .then((filtered) => analyzeListings(filtered))
+    .then((analyzed) => notifyMe(analyzed))
+    .then((analyzed) => res.json({ listings: analyzed }))
+    .catch((error) => {
+      console.error(error);
+      res.status(500).json({ error: String(error) });
+    });
 });
 
-const server = app.listen(env.PORT, () =>
-  console.log(`Server listening on port ${env.PORT}`),
-);
-process.on("SIGTERM", () => {
-  console.log("SIGINT SIGNALED, gracefully shutting down...");
-  server.close();
-});
+const server = app.listen(env.PORT, () => console.log(`Server listening on port ${env.PORT}`));
 
-process.on("SIGINT", () => {
-  console.log("SIGINT SIGNALED, gracefully shutting down...");
-  server.close();
-});
+function shutdown() {
+  console.log("Shutting down...");
+  server.close(() => process.exit(0));
+  setTimeout(() => process.exit(1), 5000);
+}
+
+process.on("SIGTERM", shutdown);
+process.on("SIGINT", shutdown);
