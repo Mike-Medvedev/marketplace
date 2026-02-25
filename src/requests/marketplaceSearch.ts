@@ -1,16 +1,42 @@
 import { SESSION } from "@/requests/session.ts";
 import { REQUEST_SPECIFIC } from "./constants.ts";
+import {
+  DEFAULT_SEARCH_CONFIG,
+  MAX_RADIUS_KM,
+} from "@/functions/search/search.constants";
+import type { MarketplaceSearchConfig } from "@/functions/search/search.types";
+
+function resolveSearchConfig(overrides?: Partial<MarketplaceSearchConfig>) {
+  const query = encodeURIComponent(
+    overrides?.query ?? DEFAULT_SEARCH_CONFIG.query,
+  );
+  return {
+    queryEncoded: query,
+    locationId: overrides?.locationId ?? DEFAULT_SEARCH_CONFIG.locationId,
+    latitude: overrides?.latitude ?? DEFAULT_SEARCH_CONFIG.latitude,
+    longitude: overrides?.longitude ?? DEFAULT_SEARCH_CONFIG.longitude,
+    radiusKm: Math.min(
+      overrides?.radiusKm ?? DEFAULT_SEARCH_CONFIG.radiusKm,
+      MAX_RADIUS_KM,
+    ),
+    minPrice: overrides?.minPrice ?? DEFAULT_SEARCH_CONFIG.minPrice,
+  };
+}
 
 const marketplaceSearchParams = (
   cursor: string | null,
+  config: ReturnType<typeof resolveSearchConfig>,
 ): Record<string, string> => {
   const variables = {
-    buyLocation: { latitude: 38.577, longitude: -121.4947 },
+    buyLocation: {
+      latitude: config.latitude,
+      longitude: config.longitude,
+    },
     contextual_data: null,
     count: 24,
     cursor,
     params: {
-      bqf: { callsite: "COMMERCE_MKTPLACE_WWW", query: "vintage%20guitars" },
+      bqf: { callsite: "COMMERCE_MKTPLACE_WWW", query: config.queryEncoded },
       browse_request_params: {
         commerce_enable_local_pickup: true,
         commerce_enable_shipping: true,
@@ -18,11 +44,11 @@ const marketplaceSearchParams = (
         commerce_search_and_rp_category_id: [],
         commerce_search_and_rp_condition: null,
         commerce_search_and_rp_ctime_days: null,
-        filter_location_latitude: 38.577,
-        filter_location_longitude: -121.4947,
-        filter_price_lower_bound: 0,
+        filter_location_latitude: config.latitude,
+        filter_location_longitude: config.longitude,
+        filter_price_lower_bound: config.minPrice,
         filter_price_upper_bound: 214748364700,
-        filter_radius_km: 805,
+        filter_radius_km: config.radiusKm,
       },
       custom_request_params: {
         browse_context: null,
@@ -38,14 +64,14 @@ const marketplaceSearchParams = (
       },
     },
     savedSearchID: null,
-    savedSearchQuery: "vintage%20guitars",
+    savedSearchQuery: config.queryEncoded,
     scale: 2,
     searchPopularSearchesParams: {
-      location_id: "sac",
-      query: "vintage%20guitars",
+      location_id: config.locationId,
+      query: config.queryEncoded,
     },
     shouldIncludePopularSearches: false,
-    topicPageParams: { location_id: "sac", url: null },
+    topicPageParams: { location_id: config.locationId, url: null },
   };
 
   const bodyParams = {
@@ -58,15 +84,23 @@ const marketplaceSearchParams = (
 
 export const marketplaceSearchRequestConfig = (
   cursor: string | null = null,
-) => ({
-  method: "POST" as const,
-  headers: {
-    ...SESSION.headers,
+  searchConfig?: Partial<MarketplaceSearchConfig>,
+) => {
+  const config = resolveSearchConfig(searchConfig);
+  const referer = `https://www.facebook.com/marketplace/${config.locationId}/search?query=${config.queryEncoded}`;
+  return {
+    method: "POST" as const,
+    headers: {
+      ...SESSION.headers,
+      cookie: SESSION.cookie,
+      "x-fb-friendly-name": REQUEST_SPECIFIC.SEARCH.fb_api_req_friendly_name,
+      "x-fb-lsd": SESSION.body.lsd,
+      Referer: referer,
+    },
     cookie: SESSION.cookie,
-    "x-fb-friendly-name": REQUEST_SPECIFIC.SEARCH.fb_api_req_friendly_name,
-    "x-fb-lsd": SESSION.body.lsd,
-  },
-  cookie: SESSION.cookie,
-  referer: SESSION.headers.Referer,
-  body: new URLSearchParams(marketplaceSearchParams(cursor)).toString(),
-});
+    referer,
+    body: new URLSearchParams(
+      marketplaceSearchParams(cursor, config),
+    ).toString(),
+  };
+};

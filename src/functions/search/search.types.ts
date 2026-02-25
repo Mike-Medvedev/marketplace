@@ -9,7 +9,23 @@ export interface MarketplaceListing {
   description: string;
 }
 
-export interface SearchMarketPlaceParams {
+/** Search filters for Marketplace (query, location, price, radius). */
+export interface MarketplaceSearchConfig {
+  /** Search query (e.g. "vintage guitars"). Default "vintage guitars". */
+  query?: string;
+  /** Facebook location slug (e.g. "sac", "sf"). Default "sac". */
+  locationId?: string;
+  /** Latitude for geo filter. Default 38.577 (Sacramento). */
+  latitude?: number;
+  /** Longitude for geo filter. Default -121.4947 (Sacramento). */
+  longitude?: number;
+  /** Search radius in km. Default 805 (~500 miles). Max 805. */
+  radiusKm?: number;
+  /** Minimum price filter. Default 0. */
+  minPrice?: number;
+}
+
+export interface SearchMarketPlaceParams extends MarketplaceSearchConfig {
   /** Pagination cursor from previous response. Omit for first page. */
   cursor?: string | null;
   /** Fetch exactly this many pages (e.g. 5 for page1..page5). */
