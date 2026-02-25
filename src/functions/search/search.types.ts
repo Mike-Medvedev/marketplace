@@ -22,8 +22,6 @@ export interface SearchMarketPlaceParams {
 
 export interface SearchMarketPlaceResult {
   listings: MarketplaceListing[];
-  /** Pages keyed by page1, page2, ... for logging. */
-  pages: Record<string, MarketplaceListing[]>;
   /** Cursor for next page. Use in next call to continue pagination. */
   nextCursor: string | null;
 }
