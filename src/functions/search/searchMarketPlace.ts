@@ -107,7 +107,6 @@ async function fetchOnePage(
       `Search request failed: ${response.status} ${response.statusText}`,
     );
   }
-
   const json = (await response.json()) as {
     data?: {
       marketplace_search?: {
