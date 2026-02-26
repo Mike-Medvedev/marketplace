@@ -83,11 +83,11 @@ const marketplaceSearchParams = (
   return bodyParams as Record<string, string>;
 };
 
-export const marketplaceSearchRequestConfig = (
+export async function marketplaceSearchRequestConfig(
   cursor: string | null = null,
   searchConfig?: Partial<MarketplaceSearchConfig>,
-) => {
-  const session = getSessionOrThrow();
+) {
+  const session = await getSessionOrThrow();
   const config = resolveSearchConfig(searchConfig);
   const referer = `https://www.facebook.com/marketplace/${config.locationId}/search?query=${config.queryEncoded}`;
   return {
@@ -105,4 +105,4 @@ export const marketplaceSearchRequestConfig = (
       marketplaceSearchParams(cursor, config, session.body),
     ).toString(),
   };
-};
+}

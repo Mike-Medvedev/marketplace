@@ -27,9 +27,9 @@ const BODY_DEFAULTS: Record<string, string> = {
   __spin_b: "trunk",
 };
 
-/** Builds request config from the in-memory Facebook session (set via /webhook/refresh). Returns null if no session. */
-export function getSessionConfig(): SessionConfig | null {
-  const raw = getSession();
+/** Builds request config from the Redis-backed Facebook session (set via /webhook/refresh). Returns null if no session. */
+export async function getSessionConfig(): Promise<SessionConfig | null> {
+  const raw = await getSession();
   if (!raw) {
     logger.debug("[session] No session in store (different instance or not yet refreshed?)");
     return null;
@@ -65,8 +65,8 @@ export function getSessionConfig(): SessionConfig | null {
   return { cookie, headers, body: bodyParams };
 }
 
-function requireSession(): SessionConfig {
-  const session = getSessionConfig();
+async function requireSession(): Promise<SessionConfig> {
+  const session = await getSessionConfig();
   if (!session) {
     throw new SessionNotLoadedError();
   }
@@ -74,6 +74,6 @@ function requireSession(): SessionConfig {
 }
 
 /** Session config for requests. Throws if no session has been set via /webhook/refresh. */
-export function getSessionOrThrow(): SessionConfig {
+export function getSessionOrThrow(): Promise<SessionConfig> {
   return requireSession();
 }

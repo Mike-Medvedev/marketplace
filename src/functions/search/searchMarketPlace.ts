@@ -99,7 +99,7 @@ async function fetchOnePage(
 ): Promise<SearchMarketPlaceResult> {
   const response = await fetch(
     FB_GRAPHQL_URL,
-    marketplaceSearchRequestConfig(cursor, searchConfig),
+    await marketplaceSearchRequestConfig(cursor, searchConfig),
   );
 
   if (!response.ok) {
@@ -169,7 +169,7 @@ async function addPhotosAndDescriptions(
 async function fetchListingPhotos(listingId: string): Promise<{ uri: string }[]> {
   const response = await fetch(
     FB_GRAPHQL_URL,
-    marketplaceProductListingPhotosRequestConfig(listingId),
+    await marketplaceProductListingPhotosRequestConfig(listingId),
   );
 
   if (!response.ok) {
@@ -195,7 +195,7 @@ async function fetchListingPhotos(listingId: string): Promise<{ uri: string }[]>
 async function fetchListingDescription(listingId: string): Promise<string> {
   const response = await fetch(
     "https://www.facebook.com/api/graphql/",
-    marketplaceProductListingDescriptionRequestConfig(listingId),
+    await marketplaceProductListingDescriptionRequestConfig(listingId),
   );
 
   if (!response.ok) {
