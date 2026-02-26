@@ -27,5 +27,5 @@ export async function getSession(): Promise<FacebookSession | null> {
  * Persist the Facebook session to Redis. Overwrites any existing session.
  */
 export async function setSession(session: FacebookSession): Promise<void> {
-  await write(SESSION_KEY, JSON.stringify(session));
+  await write(SESSION_KEY, JSON.stringify(session), 86400); //TTL  86400 = 1 day
 }
