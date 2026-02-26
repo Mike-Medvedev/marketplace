@@ -25,3 +25,10 @@ export class EmailError extends Error {
     this.name = "EmailError";
   }
 }
+
+export class SessionNotLoadedError extends Error {
+  constructor(message: string = "Facebook session not loaded. POST session data to /webhook/refresh first.") {
+    super(message);
+    this.name = "SessionNotLoadedError";
+  }
+}

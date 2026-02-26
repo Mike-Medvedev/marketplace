@@ -3,6 +3,7 @@ import {
   FetchListingDescriptionError,
   FetchListingPhotosError,
   SearchMarketPlaceError,
+  SessionNotLoadedError,
 } from "@/errors/errors";
 import { APIError } from "openai";
 import logger from "@/logger/logger";
@@ -31,6 +32,14 @@ const errorHandler: ErrorRequestHandler = function (
   if (error instanceof EmailError) {
     logger.error(error);
     res.sendStatus(500);
+    return;
+  }
+  if (error instanceof SessionNotLoadedError) {
+    logger.warn(error.message);
+    res.status(503).json({
+      error: error.message,
+      hint: "POST session data to /webhook/refresh first.",
+    });
     return;
   }
   if (error instanceof APIError) {

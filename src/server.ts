@@ -12,6 +12,7 @@ import { setSession } from "@/session-store.ts";
 
 import { EmailError } from "@/errors/errors";
 import { searchMarketPlace } from "@/functions";
+import type { SearchMarketPlaceParams } from "@/functions/search/search.types";
 
 import express, { json } from "express";
 import logger from "@/logger/logger";
@@ -27,18 +28,54 @@ const transporter = nodemailer.createTransport({
 
 export { getSession } from "@/session-store.ts";
 const app = express();
-app.use(express.json());
+app.use(json());
 
 app.get("/health", (req, res) => {
   res.status(200).json({ status: "healthy" });
 });
+const SCRAPE_PARAM_KEYS: (keyof SearchMarketPlaceParams)[] = [
+  "query",
+  "locationId",
+  "latitude",
+  "longitude",
+  "radiusKm",
+  "minPrice",
+  "cursor",
+  "pageCount",
+  "pageDelayMs",
+  "listingFetchDelayMs",
+];
+
+function parseScrapeBody(body: unknown): SearchMarketPlaceParams {
+  if (body == null || typeof body !== "object") return {};
+  const raw = body as Record<string, unknown>;
+  const params: SearchMarketPlaceParams = {};
+  const numKeys = ["latitude", "longitude", "radiusKm", "minPrice", "pageCount", "pageDelayMs", "listingFetchDelayMs"] as const;
+  for (const key of SCRAPE_PARAM_KEYS) {
+    const v = raw[key];
+    if (v === undefined) continue;
+    if (numKeys.includes(key as (typeof numKeys)[number])) {
+      const n = Number(v);
+      if (!Number.isNaN(n)) (params as Record<string, number>)[key] = n;
+    } else if (key === "cursor") {
+      params.cursor = v === null || v === "" ? null : String(v);
+    } else {
+      (params as Record<string, string>)[key] = String(v);
+    }
+  }
+  return params;
+}
+
 /**
- * Fetches facebook marketplace listings and analyzes images with vision learning model
+ * Fetches facebook marketplace listings and analyzes images with vision learning model.
+ * Accepts optional JSON body with search params: query, locationId, latitude, longitude,
+ * radiusKm, minPrice, pageCount, pageDelayMs, listingFetchDelayMs, cursor.
  */
 app.post("/scrape", async (req, res) => {
   logger.info("Request recieved, kicking off marketplace search...");
 
-  const { listings } = await searchMarketPlace({ pageCount: 1 });
+  const params = parseScrapeBody(req.body);
+  const { listings } = await searchMarketPlace(params);
   // const filtered = await filterListings(listings);
   // const logged = await logListings(filtered);
   // const analyzed = await analyzeListings(filtered);
