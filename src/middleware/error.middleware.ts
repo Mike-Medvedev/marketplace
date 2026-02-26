@@ -1,4 +1,5 @@
 import {
+  EmailError,
   FetchListingDescriptionError,
   FetchListingPhotosError,
   SearchMarketPlaceError,
@@ -15,22 +16,31 @@ const errorHandler: ErrorRequestHandler = function (
   if (error instanceof SearchMarketPlaceError) {
     logger.error(error);
     res.sendStatus(500);
+    return;
   }
   if (error instanceof FetchListingPhotosError) {
     logger.error(error);
     res.sendStatus(500);
+    return;
   }
   if (error instanceof FetchListingDescriptionError) {
     logger.error(error);
     res.sendStatus(500);
+    return;
+  }
+  if (error instanceof EmailError) {
+    logger.error(error);
+    res.sendStatus(500);
+    return;
   }
   if (error instanceof APIError) {
     logger.error(error);
     res.sendStatus(500);
-  } else {
-    logger.error(error);
-    res.sendStatus(500);
+    return;
   }
+
+  logger.error(error);
+  res.sendStatus(500);
 };
 
 export default errorHandler;

@@ -1,4 +1,4 @@
-import { SESSION } from "@/requests/session.ts";
+import { getSessionOrThrow } from "@/requests/session.ts";
 import { REQUEST_SPECIFIC } from "./constants.ts";
 import {
   DEFAULT_SEARCH_CONFIG,
@@ -26,6 +26,7 @@ function resolveSearchConfig(overrides?: Partial<MarketplaceSearchConfig>) {
 const marketplaceSearchParams = (
   cursor: string | null,
   config: ReturnType<typeof resolveSearchConfig>,
+  sessionBody: Record<string, string>,
 ): Record<string, string> => {
   const variables = {
     buyLocation: {
@@ -75,7 +76,7 @@ const marketplaceSearchParams = (
   };
 
   const bodyParams = {
-    ...SESSION.body,
+    ...sessionBody,
     ...REQUEST_SPECIFIC.SEARCH,
     variables: JSON.stringify(variables),
   };
@@ -86,21 +87,22 @@ export const marketplaceSearchRequestConfig = (
   cursor: string | null = null,
   searchConfig?: Partial<MarketplaceSearchConfig>,
 ) => {
+  const session = getSessionOrThrow();
   const config = resolveSearchConfig(searchConfig);
   const referer = `https://www.facebook.com/marketplace/${config.locationId}/search?query=${config.queryEncoded}`;
   return {
     method: "POST" as const,
     headers: {
-      ...SESSION.headers,
-      cookie: SESSION.cookie,
+      ...session.headers,
+      cookie: session.cookie,
       "x-fb-friendly-name": REQUEST_SPECIFIC.SEARCH.fb_api_req_friendly_name,
-      "x-fb-lsd": SESSION.body.lsd,
+      "x-fb-lsd": session.body.lsd,
       Referer: referer,
     },
-    cookie: SESSION.cookie,
+    cookie: session.cookie,
     referer,
     body: new URLSearchParams(
-      marketplaceSearchParams(cursor, config),
+      marketplaceSearchParams(cursor, config, session.body),
     ).toString(),
   };
 };
