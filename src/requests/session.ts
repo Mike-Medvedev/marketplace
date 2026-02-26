@@ -1,52 +1,75 @@
-import { env } from "../env.js";
-export const SESSION = {
-  cookie: env.FB_COOKIE,
-  headers: {
-    accept: "*/*",
-    "accept-language": env.FB_ACCEPT_LANGUAGE,
-    "cache-control": "no-cache",
-    "content-type": "application/x-www-form-urlencoded",
-    pragma: "no-cache",
-    priority: "u=1, i",
-    "sec-ch-prefers-color-scheme": env.FB_SEC_CH_PREFERS_COLOR_SCHEME,
-    "sec-ch-ua": env.FB_SEC_CH_UA,
-    "sec-ch-ua-full-version-list": env.FB_SEC_CH_UA_FULL_VERSION_LIST,
-    "sec-ch-ua-mobile": env.FB_SEC_CH_UA_MOBILE,
-    "sec-ch-ua-model": env.FB_SEC_CH_UA_MODEL,
-    "sec-ch-ua-platform": env.FB_SEC_CH_UA_PLATFORM,
-    "sec-ch-ua-platform-version": env.FB_SEC_CH_UA_PLATFORM_VERSION,
-    "sec-fetch-dest": "empty",
-    "sec-fetch-mode": "cors",
-    "sec-fetch-site": "same-origin",
-    "x-asbd-id": env.FB_X_ASBD_ID,
-    Referer:
-      "https://www.facebook.com/marketplace/sac/search?query=vintage%20guitar",
-  },
-  body: {
-    av: env.FB_USER_ID,
-    __aaid: "0",
-    __user: env.FB_USER_ID,
-    __a: "1",
-    __hs: env.FB_HS,
-    dpr: "2",
-    __ccg: "EXCELLENT",
-    __rev: env.FB_REV,
-    __s: env.FB_S,
-    __hsi: env.FB_HSI,
-    __dyn: env.FB_DYN,
-    __csr: env.FB_CSR,
-    __hsdp: env.FB_HSDP,
-    __hblp: env.FB_HBLP,
-    __sjsp: env.FB_SJSP,
-    __comet_req: env.FB_COMET_REQ,
-    fb_dtsg: env.FB_DTSG,
-    jazoest: env.FB_JAZOEST,
-    lsd: env.FB_LSD,
-    __spin_r: env.FB_SPIN_R,
-    __spin_b: "trunk",
-    __spin_t: env.FB_SPIN_T,
-    __crn: "comet.fbweb.CometMarketplaceSearchRoute",
-    fb_api_caller_class: "RelayModern",
-    server_timestamps: "true",
-  },
+import { getSession } from "@/session-store.ts";
+
+export interface SessionConfig {
+  cookie: string;
+  headers: Record<string, string>;
+  body: Record<string, string>;
+}
+
+const FIXED_HEADERS: Record<string, string> = {
+  accept: "*/*",
+  "cache-control": "no-cache",
+  "content-type": "application/x-www-form-urlencoded",
+  pragma: "no-cache",
+  priority: "u=1, i",
+  "sec-fetch-dest": "empty",
+  "sec-fetch-mode": "cors",
+  "sec-fetch-site": "same-origin",
 };
+
+const BODY_DEFAULTS: Record<string, string> = {
+  __aaid: "0",
+  __a: "1",
+  dpr: "2",
+  __ccg: "EXCELLENT",
+  __spin_b: "trunk",
+};
+
+/** Builds request config from the in-memory Facebook session (set via /webhook/refresh). Returns null if no session. */
+export function getSessionConfig(): SessionConfig | null {
+  const raw = getSession();
+  if (!raw) return null;
+
+  const cookie =
+    raw.headers["cookie"] ?? raw.headers["Cookie"] ?? "";
+  if (!cookie) return null;
+
+  const params = new URLSearchParams(raw.body);
+  const bodyParams: Record<string, string> = { ...BODY_DEFAULTS };
+  for (const [key, value] of params) {
+    bodyParams[key] = value;
+  }
+
+  const headers: Record<string, string> = {
+    ...FIXED_HEADERS,
+    "accept-language": raw.headers["accept-language"] ?? "en-US,en;q=0.9",
+    "sec-ch-prefers-color-scheme":
+      raw.headers["sec-ch-prefers-color-scheme"] ?? "dark",
+    "sec-ch-ua": raw.headers["sec-ch-ua"] ?? "",
+    "sec-ch-ua-full-version-list":
+      raw.headers["sec-ch-ua-full-version-list"] ?? "",
+    "sec-ch-ua-mobile": raw.headers["sec-ch-ua-mobile"] ?? "?0",
+    "sec-ch-ua-model": raw.headers["sec-ch-ua-model"] ?? '""',
+    "sec-ch-ua-platform": raw.headers["sec-ch-ua-platform"] ?? "",
+    "sec-ch-ua-platform-version":
+      raw.headers["sec-ch-ua-platform-version"] ?? "",
+    "x-asbd-id": raw.headers["x-asbd-id"] ?? "",
+  };
+
+  return { cookie, headers, body: bodyParams };
+}
+
+function requireSession(): SessionConfig {
+  const session = getSessionConfig();
+  if (!session) {
+    throw new Error(
+      "Facebook session not loaded. POST session data to /webhook/refresh first.",
+    );
+  }
+  return session;
+}
+
+/** Session config for requests. Throws if no session has been set via /webhook/refresh. */
+export function getSessionOrThrow(): SessionConfig {
+  return requireSession();
+}
