@@ -8,6 +8,7 @@
 // Step 7: verification pipeline with use roboflow to tell whether its vintage or not
 // Step 8: roboflow calls webhook and notifies me with listing.
 import { env } from "@/env.ts";
+import { disconnect as disconnectRedis } from "@/redis.ts";
 import { handleScrape } from "@/routes/scrape.ts";
 import {
   handleAnalyzedListings,
@@ -45,10 +46,15 @@ app.use(errorHandler);
 const server = app.listen(env.PORT, () => console.log(`Server listening on port ${env.PORT}`));
 
 let isShuttingDown = false;
-function shutdown() {
+async function shutdown() {
   if (isShuttingDown) return;
   isShuttingDown = true;
   console.log("Shutting down...");
+  try {
+    await disconnectRedis();
+  } catch (err) {
+    console.error("Redis disconnect error:", err);
+  }
   server.close(() => process.exit(0));
   setTimeout(() => process.exit(1), 5000);
 }

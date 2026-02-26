@@ -13,10 +13,8 @@ const marketplaceProductListingPhotosParams = (
   return bodyParams as Record<string, string>;
 };
 
-export const marketplaceProductListingPhotosRequestConfig = (
-  targetId: string,
-) => {
-  const session = getSessionOrThrow();
+export async function marketplaceProductListingPhotosRequestConfig(targetId: string) {
+  const session = await getSessionOrThrow();
   return {
     method: "POST" as const,
     headers: {
@@ -29,4 +27,4 @@ export const marketplaceProductListingPhotosRequestConfig = (
       marketplaceProductListingPhotosParams(targetId, session.body),
     ).toString(),
   };
-};
+}

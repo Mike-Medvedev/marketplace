@@ -40,7 +40,7 @@ export async function handleRefresh(req: Request, res: Response): Promise<void> 
     return;
   }
 
-  setSession({ headers, body, capturedAt });
+  await setSession({ headers, body, capturedAt });
   logger.info(`[refresh] Session updated at ${capturedAt}`);
   res.json({ success: true });
 }
