@@ -18,3 +18,10 @@ export class FetchListingDescriptionError extends Error {
     this.name = "FetchListingDescriptionError";
   }
 }
+
+export class EmailError extends Error {
+  constructor(message: string, error?: unknown) {
+    super(message, { cause: error instanceof Error ? error : undefined });
+    this.name = "EmailError";
+  }
+}

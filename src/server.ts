@@ -8,20 +8,26 @@
 // Step 7: verification pipeline with use roboflow to tell whether its vintage or not
 // Step 8: roboflow calls webhook and notifies me with listing.
 import { env } from "@/env.ts";
+import { setSession } from "@/session-store.ts";
 
-import {
-  searchMarketPlace,
-  filterListings,
-  analyzeListings,
-  notifyMe,
-  logListings,
-} from "@/functions";
+import { EmailError } from "@/errors/errors";
+import { searchMarketPlace } from "@/functions";
 
-import express from "express";
+import express, { json } from "express";
 import logger from "@/logger/logger";
 import errorHandler from "@/middleware/error.middleware";
-const app = express();
+import nodemailer from "nodemailer";
+const transporter = nodemailer.createTransport({
+  service: "gmail",
+  auth: {
+    user: env.EMAIL_USER,
+    pass: env.EMAIL_APP_PASSWORD,
+  },
+});
 
+export { getSession } from "@/session-store.ts";
+const app = express();
+app.use(express.json());
 /**
  * Fetches facebook marketplace listings and analyzes images with vision learning model
  */
@@ -41,6 +47,43 @@ app.post("/webhook/analyzed-listings", async (req, res) => {
   logger.info("Recieved analyzed listings in webhook, notifying user");
   logger.info(req.body);
   res.sendStatus(200);
+});
+app.post("/webhook/container-started", async (req, res) => {
+  const { ip, novnc_url } = req.body;
+
+  try {
+    await transporter.sendMail({
+      from: env.EMAIL_USER,
+      to: env.EMAIL_USER,
+      subject: "Facebook Login Required",
+      html: `
+        <h2>Facebook session refresh needed</h2>
+        <p>Your container is ready. Click the link below to open the browser and log in:</p>
+        <a href="${novnc_url}" style="font-size: 18px;">${novnc_url}</a>
+        <p>Password: check your VNC_PASSWORD secret</p>
+        <p>IP: ${ip}</p>
+      `,
+    });
+  } catch (err) {
+    throw new EmailError("Failed to send container-started notification email", err);
+  }
+
+  logger.info(`[container-started] Email sent for container at ${ip}`);
+  res.json({ success: true });
+});
+
+app.post("/webhook/refresh", async (req, res) => {
+  const { headers, body, capturedAt } = req.body;
+
+  if (!headers || !body) {
+    logger.warn("[refresh] Received invalid session data");
+    res.status(400).json({ error: "Missing headers or body" });
+    return;
+  }
+
+  setSession({ headers, body, capturedAt });
+  logger.info(`[refresh] Session updated at ${capturedAt}`);
+  res.json({ success: true });
 });
 app.use(errorHandler);
 
