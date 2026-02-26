@@ -1,3 +1,4 @@
+import { SessionNotLoadedError } from "@/errors/errors";
 import { getSession } from "@/session-store.ts";
 
 export interface SessionConfig {
@@ -62,9 +63,7 @@ export function getSessionConfig(): SessionConfig | null {
 function requireSession(): SessionConfig {
   const session = getSessionConfig();
   if (!session) {
-    throw new Error(
-      "Facebook session not loaded. POST session data to /webhook/refresh first.",
-    );
+    throw new SessionNotLoadedError();
   }
   return session;
 }
