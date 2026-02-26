@@ -29,12 +29,12 @@ app.post("/scrape", async (req, res) => {
   logger.info("Request recieved, kicking off marketplace search...");
 
   const { listings } = await searchMarketPlace({ pageCount: 1 });
-  const filtered = await filterListings(listings);
-  const logged = await logListings(filtered);
-  const analyzed = await analyzeListings(filtered);
-  await notifyMe(analyzed);
+  // const filtered = await filterListings(listings);
+  // const logged = await logListings(filtered);
+  // const analyzed = await analyzeListings(filtered);
+  // await notifyMe(analyzed);
 
-  res.sendStatus(200);
+  res.status(200).json({ listings });
 });
 
 app.post("/webhook/analyzed-listings", async (req, res) => {
@@ -46,7 +46,10 @@ app.use(errorHandler);
 
 const server = app.listen(env.PORT, () => console.log(`Server listening on port ${env.PORT}`));
 
+let isShuttingDown = false;
 function shutdown() {
+  if (isShuttingDown) return;
+  isShuttingDown = true;
   console.log("Shutting down...");
   server.close(() => process.exit(0));
   setTimeout(() => process.exit(1), 5000);
