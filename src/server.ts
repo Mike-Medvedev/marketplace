@@ -8,7 +8,7 @@
 // Step 7: verification pipeline with use roboflow to tell whether its vintage or not
 // Step 8: roboflow calls webhook and notifies me with listing.
 import { env } from "@/env.ts";
-import { disconnect as disconnectRedis } from "@/redis.ts";
+import { redis } from "@/redis.ts";
 import { handleScrape } from "@/routes/scrape.ts";
 import {
   handleAnalyzedListings,
@@ -51,7 +51,7 @@ async function shutdown() {
   isShuttingDown = true;
   console.log("Shutting down...");
   try {
-    await disconnectRedis();
+    redis.disconnect();
   } catch (err) {
     console.error("Redis disconnect error:", err);
   }
