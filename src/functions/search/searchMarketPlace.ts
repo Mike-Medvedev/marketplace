@@ -64,7 +64,7 @@ export async function searchMarketPlace(
     return fetchOnePage(cursor, listingFetchDelayMs, searchConfig);
   }
 
-  const allListings: MarketplaceListing[] = [];
+  const allListings: RawListing[] = [];
   let nextCursor: string | null = cursor;
   let pageNum = 1;
 
@@ -123,8 +123,8 @@ async function fetchOnePage(
     return { listings: [], nextCursor: null };
   }
   logger.info(`------fetched ${feedUnits.edges.length} listings from marketplace`);
-  const rawListings = feedUnits.edges.map((edge) => edge.node.listing);
-  const listings = await addPhotosAndDescriptions(rawListings, listingFetchDelayMs);
+  const listings = feedUnits.edges.map((edge) => edge.node.listing);
+  // const listings = await addPhotosAndDescriptions(rawListings, listingFetchDelayMs);
   const nextCursor = feedUnits.page_info?.end_cursor ?? null;
 
   return { listings, nextCursor };
