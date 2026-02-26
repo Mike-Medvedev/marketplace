@@ -1,8 +1,9 @@
-import { SESSION } from "@/requests/session.ts";
+import { getSessionOrThrow } from "@/requests/session.ts";
 import { REQUEST_SPECIFIC } from "./constants.ts";
 
 const marketplaceProductListingDescriptionParams = (
   targetId: string,
+  sessionBody: Record<string, string>,
 ): Record<string, string> => {
   const variables = {
     enableJobEmployerActionBar: true,
@@ -25,7 +26,7 @@ const marketplaceProductListingDescriptionParams = (
     __relay_internal__pv__CometUFI_dedicated_comment_routable_dialog_gkrelayprovider: false,
   };
   const bodyParams = {
-    ...SESSION.body,
+    ...sessionBody,
     ...REQUEST_SPECIFIC.DESCRIPTION,
     variables: JSON.stringify(variables),
   };
@@ -34,15 +35,18 @@ const marketplaceProductListingDescriptionParams = (
 
 export const marketplaceProductListingDescriptionRequestConfig = (
   targetId: string,
-) => ({
-  method: "POST" as const,
-  headers: {
-    ...SESSION.headers,
-    cookie: SESSION.cookie,
-    "x-fb-friendly-name": REQUEST_SPECIFIC.DESCRIPTION.fb_api_req_friendly_name,
-    "x-fb-lsd": SESSION.body.lsd,
-  },
-  body: new URLSearchParams(
-    marketplaceProductListingDescriptionParams(targetId),
-  ).toString(),
-});
+) => {
+  const session = getSessionOrThrow();
+  return {
+    method: "POST" as const,
+    headers: {
+      ...session.headers,
+      cookie: session.cookie,
+      "x-fb-friendly-name": REQUEST_SPECIFIC.DESCRIPTION.fb_api_req_friendly_name,
+      "x-fb-lsd": session.body.lsd,
+    },
+    body: new URLSearchParams(
+      marketplaceProductListingDescriptionParams(targetId, session.body),
+    ).toString(),
+  };
+};
