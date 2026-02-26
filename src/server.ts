@@ -28,6 +28,10 @@ const transporter = nodemailer.createTransport({
 export { getSession } from "@/session-store.ts";
 const app = express();
 app.use(express.json());
+
+app.get("/health", (req, res) => {
+  res.status(200).json({ status: "healthy" });
+});
 /**
  * Fetches facebook marketplace listings and analyzes images with vision learning model
  */
