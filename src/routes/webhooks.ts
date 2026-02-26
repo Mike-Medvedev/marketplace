@@ -16,13 +16,16 @@ export async function handleContainerStarted(req: Request, res: Response): Promi
   const message = [
     "Facebook session refresh needed.",
     "",
-    `Open in browser: ${novnc_url}`,
+    novnc_url ? `[Open in browser](${novnc_url})` : "Open in browser: (no URL provided)",
+    "",
     "Password: check your VNC_PASSWORD secret",
-    `IP: ${ip}`,
+    `IP: ${ip ?? "—"}`,
   ].join("\n");
 
   try {
-    await sendNtfyNotification(env.NTFY_TOPIC, "Facebook Login Required", message);
+    await sendNtfyNotification(env.NTFY_TOPIC, "Facebook Login Required", message, {
+      markdown: true,
+    });
   } catch (err) {
     throw new NtfyError("Failed to send container-started notification", err);
   }
