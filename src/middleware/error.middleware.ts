@@ -1,7 +1,7 @@
 import {
-  EmailError,
   FetchListingDescriptionError,
   FetchListingPhotosError,
+  NtfyError,
   SearchMarketPlaceError,
   SessionNotLoadedError,
 } from "@/errors/errors";
@@ -29,7 +29,7 @@ const errorHandler: ErrorRequestHandler = function (
     res.sendStatus(500);
     return;
   }
-  if (error instanceof EmailError) {
+  if (error instanceof NtfyError) {
     logger.error(error);
     res.sendStatus(500);
     return;

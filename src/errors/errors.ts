@@ -19,10 +19,10 @@ export class FetchListingDescriptionError extends Error {
   }
 }
 
-export class EmailError extends Error {
+export class NtfyError extends Error {
   constructor(message: string, error?: unknown) {
     super(message, { cause: error instanceof Error ? error : undefined });
-    this.name = "EmailError";
+    this.name = "NtfyError";
   }
 }
 

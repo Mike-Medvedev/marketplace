@@ -1,4 +1,5 @@
 import { SessionNotLoadedError } from "@/errors/errors";
+import logger from "@/logger/logger";
 import { getSession } from "@/session-store.ts";
 
 export interface SessionConfig {
@@ -29,11 +30,18 @@ const BODY_DEFAULTS: Record<string, string> = {
 /** Builds request config from the in-memory Facebook session (set via /webhook/refresh). Returns null if no session. */
 export function getSessionConfig(): SessionConfig | null {
   const raw = getSession();
-  if (!raw) return null;
+  if (!raw) {
+    logger.debug("[session] No session in store (different instance or not yet refreshed?)");
+    return null;
+  }
 
-  const cookie =
-    raw.headers["cookie"] ?? raw.headers["Cookie"] ?? "";
-  if (!cookie) return null;
+  const cookie = raw.headers["cookie"] ?? raw.headers["Cookie"] ?? "";
+  if (!cookie) {
+    logger.info(
+      "[session] Session exists but headers have no cookie — refresh payload may be wrong",
+    );
+    return null;
+  }
 
   const params = new URLSearchParams(raw.body);
   const bodyParams: Record<string, string> = { ...BODY_DEFAULTS };
@@ -44,16 +52,13 @@ export function getSessionConfig(): SessionConfig | null {
   const headers: Record<string, string> = {
     ...FIXED_HEADERS,
     "accept-language": raw.headers["accept-language"] ?? "en-US,en;q=0.9",
-    "sec-ch-prefers-color-scheme":
-      raw.headers["sec-ch-prefers-color-scheme"] ?? "dark",
+    "sec-ch-prefers-color-scheme": raw.headers["sec-ch-prefers-color-scheme"] ?? "dark",
     "sec-ch-ua": raw.headers["sec-ch-ua"] ?? "",
-    "sec-ch-ua-full-version-list":
-      raw.headers["sec-ch-ua-full-version-list"] ?? "",
+    "sec-ch-ua-full-version-list": raw.headers["sec-ch-ua-full-version-list"] ?? "",
     "sec-ch-ua-mobile": raw.headers["sec-ch-ua-mobile"] ?? "?0",
     "sec-ch-ua-model": raw.headers["sec-ch-ua-model"] ?? '""',
     "sec-ch-ua-platform": raw.headers["sec-ch-ua-platform"] ?? "",
-    "sec-ch-ua-platform-version":
-      raw.headers["sec-ch-ua-platform-version"] ?? "",
+    "sec-ch-ua-platform-version": raw.headers["sec-ch-ua-platform-version"] ?? "",
     "x-asbd-id": raw.headers["x-asbd-id"] ?? "",
   };
 
