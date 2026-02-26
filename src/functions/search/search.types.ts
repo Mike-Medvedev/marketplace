@@ -37,7 +37,7 @@ export interface SearchMarketPlaceParams extends MarketplaceSearchConfig {
 }
 
 export interface SearchMarketPlaceResult {
-  listings: MarketplaceListing[];
+  listings: RawListing[];
   /** Cursor for next page. Use in next call to continue pagination. */
   nextCursor: string | null;
 }
