@@ -1,4 +1,4 @@
-import { searchMarketPlace } from "@/functions";
+import { analyzeListings, filterListings, searchMarketPlace } from "@/functions";
 import { parseScrapeBody } from "@/scrape/parse-scrape-body";
 import logger from "@/logger/logger";
 import type { Request, Response } from "express";
@@ -12,5 +12,8 @@ export async function handleScrape(req: Request, res: Response): Promise<void> {
   logger.info("Request recieved, kicking off marketplace search...");
   const params = parseScrapeBody(req.body);
   const { listings } = await searchMarketPlace(params);
+  console.log(listings);
+  // const filtered = await filterListings(listings);
+  // const analyzed = await analyzeListings(filtered);
   res.status(200).json({ listings });
 }

@@ -1,24 +1,27 @@
 import { getSessionOrThrow } from "@/requests/session.ts";
 import { REQUEST_SPECIFIC } from "./constants.ts";
-import {
-  DEFAULT_SEARCH_CONFIG,
-  MAX_RADIUS_KM,
-} from "@/functions/search/search.constants";
+import { DEFAULT_SEARCH_CONFIG, MAX_RADIUS_KM } from "@/functions/search/search.constants";
 import type { MarketplaceSearchConfig } from "@/functions/search/search.types";
 
+/**
+ * Utility to ensure the session body is an object.
+ * Necessary because Playwright's postData() is a raw URL-encoded string.
+ */
+function parseBody(body: any): Record<string, string> {
+  if (typeof body === "string") {
+    return Object.fromEntries(new URLSearchParams(body));
+  }
+  return (body as Record<string, string>) ?? {};
+}
+
 function resolveSearchConfig(overrides?: Partial<MarketplaceSearchConfig>) {
-  const query = encodeURIComponent(
-    overrides?.query ?? DEFAULT_SEARCH_CONFIG.query,
-  );
+  const query = encodeURIComponent(overrides?.query ?? DEFAULT_SEARCH_CONFIG.query);
   return {
     queryEncoded: query,
     locationId: overrides?.locationId ?? DEFAULT_SEARCH_CONFIG.locationId,
     latitude: overrides?.latitude ?? DEFAULT_SEARCH_CONFIG.latitude,
     longitude: overrides?.longitude ?? DEFAULT_SEARCH_CONFIG.longitude,
-    radiusKm: Math.min(
-      overrides?.radiusKm ?? DEFAULT_SEARCH_CONFIG.radiusKm,
-      MAX_RADIUS_KM,
-    ),
+    radiusKm: Math.min(overrides?.radiusKm ?? DEFAULT_SEARCH_CONFIG.radiusKm, MAX_RADIUS_KM),
     minPrice: overrides?.minPrice ?? DEFAULT_SEARCH_CONFIG.minPrice,
   };
 }
@@ -26,7 +29,7 @@ function resolveSearchConfig(overrides?: Partial<MarketplaceSearchConfig>) {
 const marketplaceSearchParams = (
   cursor: string | null,
   config: ReturnType<typeof resolveSearchConfig>,
-  sessionBody: Record<string, string>,
+  parsedSessionBody: Record<string, string>,
 ): Record<string, string> => {
   const variables = {
     buyLocation: {
@@ -75,12 +78,16 @@ const marketplaceSearchParams = (
     topicPageParams: { location_id: config.locationId, url: null },
   };
 
-  const bodyParams = {
-    ...sessionBody,
+  // Construct the body using spread and explicit overrides for TS safety
+  const bodyParams: Record<string, string> = {
+    ...parsedSessionBody,
     ...REQUEST_SPECIFIC.SEARCH,
     variables: JSON.stringify(variables),
+    fb_dtsg: parsedSessionBody.fb_dtsg ?? "",
+    lsd: parsedSessionBody.lsd ?? "",
   };
-  return bodyParams as Record<string, string>;
+
+  return bodyParams;
 };
 
 export async function marketplaceSearchRequestConfig(
@@ -88,21 +95,26 @@ export async function marketplaceSearchRequestConfig(
   searchConfig?: Partial<MarketplaceSearchConfig>,
 ) {
   const session = await getSessionOrThrow();
+
+  // Ensure we have an object version of the body for manipulation
+  const parsedSessionBody = parseBody(session.body);
   const config = resolveSearchConfig(searchConfig);
   const referer = `https://www.facebook.com/marketplace/${config.locationId}/search?query=${config.queryEncoded}`;
+
+  // Build the final body object
+  const finalBodyObj = marketplaceSearchParams(cursor, config, parsedSessionBody);
+
   return {
     method: "POST" as const,
     headers: {
       ...session.headers,
       cookie: session.cookie,
       "x-fb-friendly-name": REQUEST_SPECIFIC.SEARCH.fb_api_req_friendly_name,
-      "x-fb-lsd": session.body.lsd,
+      "x-fb-lsd": parsedSessionBody.lsd ?? "",
       Referer: referer,
+      Origin: "https://www.facebook.com",
+      "Content-Type": "application/x-www-form-urlencoded",
     },
-    cookie: session.cookie,
-    referer,
-    body: new URLSearchParams(
-      marketplaceSearchParams(cursor, config, session.body),
-    ).toString(),
+    body: new URLSearchParams(finalBodyObj).toString(),
   };
 }
