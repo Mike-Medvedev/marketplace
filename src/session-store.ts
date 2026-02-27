@@ -13,10 +13,13 @@ const SESSION_KEY = "facebook:session";
  * Load the Facebook session from Redis. Returns null if none stored or Redis read fails.
  */
 export async function getSession(): Promise<FacebookSession | null> {
+  logger.info("=================GETTING SESSION========================");
   try {
     const raw = await read(SESSION_KEY);
     if (!raw) return null;
-    return JSON.parse(raw) as FacebookSession;
+    const session = JSON.parse(raw) as FacebookSession;
+    logger.info(JSON.stringify(session));
+    return session;
   } catch (err) {
     logger.warn("[session-store] Failed to read session from Redis:", err);
     return null;

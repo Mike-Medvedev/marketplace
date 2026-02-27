@@ -5,6 +5,20 @@ import { z } from "zod";
 import type { MarketplaceListing } from "@/functions/search/search.types.ts";
 import logger from "@/logger/logger";
 
+// const ListingsModel = z.object({
+//   filtered: z.array(
+//     z.object({
+//       id: z.string(),
+//       url: z.string(),
+//       price: z.string(),
+//       title: z.string(),
+//       location: z.string(),
+//       primaryPhotoUri: z.string(),
+//       description: z.string(),
+//       photos: z.array(z.object({ uri: z.string() })),
+//     }),
+//   ),
+// });
 const ListingsModel = z.object({
   filtered: z.array(
     z.object({
@@ -14,15 +28,13 @@ const ListingsModel = z.object({
       title: z.string(),
       location: z.string(),
       primaryPhotoUri: z.string(),
-      description: z.string(),
-      photos: z.array(z.object({ uri: z.string() })),
     }),
   ),
 });
 
 export async function filterListings(
-  listings: MarketplaceListing[],
-): Promise<MarketplaceListing[]> {
+  listings: Omit<MarketplaceListing, "photos" | "description">[],
+): Promise<Omit<MarketplaceListing, "photos" | "description">[]> {
   logger.info("Filtering marketplace listings...");
   const client = new OpenAI();
   const { output_text, error } = await client.responses.create({
