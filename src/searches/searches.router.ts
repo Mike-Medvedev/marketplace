@@ -25,6 +25,7 @@ export const searchesRouter = TypedRouter(express.Router(), {
 searchesRouter.get(
   "/",
   {
+    operationId: "getSearches",
     response: z.array(activeSearchSchema),
     summary: "List all saved searches",
   },
@@ -36,6 +37,7 @@ searchesRouter.get(
 searchesRouter.get(
   "/:id",
   {
+    operationId: "getSearchById",
     params: searchIdParamsSchema,
     response: activeSearchSchema,
     responses: { 404: notFoundSchema },
@@ -49,6 +51,7 @@ searchesRouter.get(
 searchesRouter.post(
   "/",
   {
+    operationId: "createSearch",
     request: createSearchBodySchema,
     response: activeSearchSchema,
     summary: "Create a new saved search",
@@ -61,6 +64,7 @@ searchesRouter.post(
 searchesRouter.put(
   "/:id",
   {
+    operationId: "updateSearch",
     params: searchIdParamsSchema,
     request: updateSearchBodySchema,
     response: activeSearchSchema,
@@ -75,6 +79,7 @@ searchesRouter.put(
 searchesRouter.delete(
   "/:id",
   {
+    operationId: "deleteSearch",
     params: searchIdParamsSchema,
     response: z.object({}),
     responses: { 404: notFoundSchema },
