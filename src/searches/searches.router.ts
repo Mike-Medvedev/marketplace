@@ -76,7 +76,8 @@ searchesRouter.delete(
   "/:id",
   {
     params: searchIdParamsSchema,
-    responses: { 204: z.void(), 404: notFoundSchema },
+    response: z.object({}),
+    responses: { 404: notFoundSchema },
     summary: "Delete a saved search",
   },
   (req, res, next) => {

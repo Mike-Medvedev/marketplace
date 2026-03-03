@@ -57,7 +57,7 @@ v1Router.post("/webhook/refresh", { skipValidation: true }, (req, res, next) => 
   handleRefresh(req, res).catch(next);
 });
 
-v1Router.use("/searches", searchesRouter);
+app.use("/api/v1/searches", searchesRouter);
 
 app.use("/api/v1", v1Router);
 app.use(swagger("MarketScrape", { bearerAuth: false, version: packageJson.version }));
