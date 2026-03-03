@@ -6,10 +6,9 @@ export async function analyzeListings(
   listings: Omit<MarketplaceListing, "photos" | "description">[],
 ): Promise<MarketplaceListing[]> {
   let analyzed = [];
-  logger.info(listings);
-  return;
   logger.info("Submitting listings for analysis!!");
   for (const listing of listings) {
+    logger.info(`Analyzing ${listing.title}...`);
     try {
       const response = await fetch(
         "https://serverless.roboflow.com/gilded-6esmg/workflows/custom-workflow-4",
@@ -30,8 +29,6 @@ export async function analyzeListings(
 
       const result = await response.json();
       analyzed.push(result);
-      console.log(result);
-      break;
     } catch (error) {
       logger.error(error);
       throw error;
