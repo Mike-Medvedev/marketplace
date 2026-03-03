@@ -1,0 +1,640 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "MarketScrape",
+    "version": "1.0.0"
+  },
+  "components": {
+    "schemas": {},
+    "parameters": {}
+  },
+  "paths": {
+    "/searches/": {
+      "get": {
+        "summary": "List all saved searches",
+        "tags": ["Searches"],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string",
+                        "format": "uuid"
+                      },
+                      "criteria": {
+                        "type": "object",
+                        "properties": {
+                          "query": {
+                            "type": "string"
+                          },
+                          "location": {
+                            "type": "string"
+                          },
+                          "minPrice": {
+                            "type": "string"
+                          },
+                          "maxPrice": {
+                            "type": "string"
+                          },
+                          "dateListed": {
+                            "type": "string",
+                            "enum": ["24h", "7d", "30d"]
+                          }
+                        },
+                        "required": ["query", "location", "minPrice", "maxPrice", "dateListed"]
+                      },
+                      "settings": {
+                        "type": "object",
+                        "properties": {
+                          "frequency": {
+                            "type": "string"
+                          },
+                          "listingsPerCheck": {
+                            "type": "integer",
+                            "minimum": 1
+                          },
+                          "notifications": {
+                            "type": "array",
+                            "items": {
+                              "type": "string",
+                              "enum": ["email", "sms", "webhook"]
+                            }
+                          }
+                        },
+                        "required": ["frequency", "listingsPerCheck", "notifications"]
+                      },
+                      "status": {
+                        "type": "string",
+                        "enum": ["running", "refresh", "error"]
+                      },
+                      "lastRun": {
+                        "type": "string",
+                        "nullable": true,
+                        "format": "date-time"
+                      }
+                    },
+                    "required": ["id", "criteria", "settings", "status", "lastRun"]
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "Create a new saved search",
+        "tags": ["Searches"],
+        "requestBody": {
+          "description": "Request body",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "criteria": {
+                    "type": "object",
+                    "properties": {
+                      "query": {
+                        "type": "string"
+                      },
+                      "location": {
+                        "type": "string"
+                      },
+                      "minPrice": {
+                        "type": "string"
+                      },
+                      "maxPrice": {
+                        "type": "string"
+                      },
+                      "dateListed": {
+                        "type": "string",
+                        "enum": ["24h", "7d", "30d"]
+                      }
+                    },
+                    "required": ["query", "location", "minPrice", "maxPrice", "dateListed"]
+                  },
+                  "settings": {
+                    "type": "object",
+                    "properties": {
+                      "frequency": {
+                        "type": "string"
+                      },
+                      "listingsPerCheck": {
+                        "type": "integer",
+                        "minimum": 1
+                      },
+                      "notifications": {
+                        "type": "array",
+                        "items": {
+                          "type": "string",
+                          "enum": ["email", "sms", "webhook"]
+                        }
+                      }
+                    },
+                    "required": ["frequency", "listingsPerCheck", "notifications"]
+                  }
+                },
+                "required": ["criteria", "settings"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "criteria": {
+                      "type": "object",
+                      "properties": {
+                        "query": {
+                          "type": "string"
+                        },
+                        "location": {
+                          "type": "string"
+                        },
+                        "minPrice": {
+                          "type": "string"
+                        },
+                        "maxPrice": {
+                          "type": "string"
+                        },
+                        "dateListed": {
+                          "type": "string",
+                          "enum": ["24h", "7d", "30d"]
+                        }
+                      },
+                      "required": ["query", "location", "minPrice", "maxPrice", "dateListed"]
+                    },
+                    "settings": {
+                      "type": "object",
+                      "properties": {
+                        "frequency": {
+                          "type": "string"
+                        },
+                        "listingsPerCheck": {
+                          "type": "integer",
+                          "minimum": 1
+                        },
+                        "notifications": {
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "enum": ["email", "sms", "webhook"]
+                          }
+                        }
+                      },
+                      "required": ["frequency", "listingsPerCheck", "notifications"]
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": ["running", "refresh", "error"]
+                    },
+                    "lastRun": {
+                      "type": "string",
+                      "nullable": true,
+                      "format": "date-time"
+                    }
+                  },
+                  "required": ["id", "criteria", "settings", "status", "lastRun"]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/searches/:id": {
+      "get": {
+        "summary": "Get a saved search by ID",
+        "tags": ["Searches"],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "criteria": {
+                      "type": "object",
+                      "properties": {
+                        "query": {
+                          "type": "string"
+                        },
+                        "location": {
+                          "type": "string"
+                        },
+                        "minPrice": {
+                          "type": "string"
+                        },
+                        "maxPrice": {
+                          "type": "string"
+                        },
+                        "dateListed": {
+                          "type": "string",
+                          "enum": ["24h", "7d", "30d"]
+                        }
+                      },
+                      "required": ["query", "location", "minPrice", "maxPrice", "dateListed"]
+                    },
+                    "settings": {
+                      "type": "object",
+                      "properties": {
+                        "frequency": {
+                          "type": "string"
+                        },
+                        "listingsPerCheck": {
+                          "type": "integer",
+                          "minimum": 1
+                        },
+                        "notifications": {
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "enum": ["email", "sms", "webhook"]
+                          }
+                        }
+                      },
+                      "required": ["frequency", "listingsPerCheck", "notifications"]
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": ["running", "refresh", "error"]
+                    },
+                    "lastRun": {
+                      "type": "string",
+                      "nullable": true,
+                      "format": "date-time"
+                    }
+                  },
+                  "required": ["id", "criteria", "settings", "status", "lastRun"]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "required": ["error"]
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "summary": "Update a saved search",
+        "tags": ["Searches"],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "description": "Request body",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "criteria": {
+                    "type": "object",
+                    "properties": {
+                      "query": {
+                        "type": "string"
+                      },
+                      "location": {
+                        "type": "string"
+                      },
+                      "minPrice": {
+                        "type": "string"
+                      },
+                      "maxPrice": {
+                        "type": "string"
+                      },
+                      "dateListed": {
+                        "type": "string",
+                        "enum": ["24h", "7d", "30d"]
+                      }
+                    },
+                    "required": ["query", "location", "minPrice", "maxPrice", "dateListed"]
+                  },
+                  "settings": {
+                    "type": "object",
+                    "properties": {
+                      "frequency": {
+                        "type": "string"
+                      },
+                      "listingsPerCheck": {
+                        "type": "integer",
+                        "minimum": 1
+                      },
+                      "notifications": {
+                        "type": "array",
+                        "items": {
+                          "type": "string",
+                          "enum": ["email", "sms", "webhook"]
+                        }
+                      }
+                    },
+                    "required": ["frequency", "listingsPerCheck", "notifications"]
+                  }
+                },
+                "required": ["criteria", "settings"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "criteria": {
+                      "type": "object",
+                      "properties": {
+                        "query": {
+                          "type": "string"
+                        },
+                        "location": {
+                          "type": "string"
+                        },
+                        "minPrice": {
+                          "type": "string"
+                        },
+                        "maxPrice": {
+                          "type": "string"
+                        },
+                        "dateListed": {
+                          "type": "string",
+                          "enum": ["24h", "7d", "30d"]
+                        }
+                      },
+                      "required": ["query", "location", "minPrice", "maxPrice", "dateListed"]
+                    },
+                    "settings": {
+                      "type": "object",
+                      "properties": {
+                        "frequency": {
+                          "type": "string"
+                        },
+                        "listingsPerCheck": {
+                          "type": "integer",
+                          "minimum": 1
+                        },
+                        "notifications": {
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "enum": ["email", "sms", "webhook"]
+                          }
+                        }
+                      },
+                      "required": ["frequency", "listingsPerCheck", "notifications"]
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": ["running", "refresh", "error"]
+                    },
+                    "lastRun": {
+                      "type": "string",
+                      "nullable": true,
+                      "format": "date-time"
+                    }
+                  },
+                  "required": ["id", "criteria", "settings", "status", "lastRun"]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "required": ["error"]
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "summary": "Delete a saved search",
+        "tags": ["Searches"],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {}
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "required": ["error"]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/scrape": {
+      "post": {
+        "summary": "Searches Marketplace and returns listings",
+        "tags": ["Scrape"],
+        "requestBody": {
+          "description": "Request body",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "query": {
+                    "type": "string"
+                  },
+                  "locationId": {
+                    "type": "string"
+                  },
+                  "latitude": {
+                    "type": "number",
+                    "nullable": true
+                  },
+                  "longitude": {
+                    "type": "number",
+                    "nullable": true
+                  },
+                  "radiusKm": {
+                    "type": "number",
+                    "nullable": true
+                  },
+                  "minPrice": {
+                    "type": "number",
+                    "nullable": true
+                  },
+                  "pageCount": {
+                    "type": "number",
+                    "nullable": true
+                  },
+                  "pageDelayMs": {
+                    "type": "number",
+                    "nullable": true
+                  },
+                  "listingFetchDelayMs": {
+                    "type": "number",
+                    "nullable": true
+                  }
+                },
+                "default": {}
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "listings": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "url": {
+                            "type": "string"
+                          },
+                          "price": {
+                            "type": "string"
+                          },
+                          "title": {
+                            "type": "string"
+                          },
+                          "location": {
+                            "type": "string"
+                          },
+                          "primaryPhotoUri": {
+                            "type": "string"
+                          }
+                        },
+                        "required": ["id", "url", "price", "title", "location", "primaryPhotoUri"]
+                      }
+                    }
+                  },
+                  "required": ["listings"]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/webhook/analyzed-listings": {
+      "post": {
+        "summary": "POST /webhook/analyzed-listings",
+        "tags": ["Webhook/analyzed-listings"],
+        "responses": {}
+      }
+    },
+    "/webhook/container-started": {
+      "post": {
+        "summary": "POST /webhook/container-started",
+        "tags": ["Webhook/container-started"],
+        "responses": {}
+      }
+    },
+    "/webhook/refresh": {
+      "post": {
+        "summary": "POST /webhook/refresh",
+        "tags": ["Webhook/refresh"],
+        "responses": {}
+      }
+    }
+  }
+}
