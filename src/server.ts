@@ -19,6 +19,7 @@ import {
   handleContainerStarted,
   handleRefresh,
 } from "@/routes/webhooks.ts";
+import { searchesRouter } from "@/searches/searches.router.ts";
 import express, { json } from "express";
 import errorHandler from "@/middleware/error.middleware";
 import { TypedRouter, swagger } from "meebo";
@@ -55,6 +56,9 @@ v1Router.post("/webhook/container-started", { skipValidation: true }, (req, res,
 v1Router.post("/webhook/refresh", { skipValidation: true }, (req, res, next) => {
   handleRefresh(req, res).catch(next);
 });
+
+v1Router.use("/searches", searchesRouter);
+
 app.use("/api/v1", v1Router);
 app.use(swagger("MarketScrape", { bearerAuth: false, version: packageJson.version }));
 app.use(errorHandler);

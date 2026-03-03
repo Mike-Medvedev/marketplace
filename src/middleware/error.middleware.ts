@@ -3,6 +3,7 @@ import {
   FetchListingPhotosError,
   NtfyError,
   SearchMarketPlaceError,
+  SearchNotFoundError,
   SessionNotLoadedError,
 } from "@/errors/errors";
 import { APIError } from "openai";
@@ -32,6 +33,11 @@ const errorHandler: ErrorRequestHandler = function (
   if (error instanceof NtfyError) {
     logger.error(error);
     res.sendStatus(500);
+    return;
+  }
+  if (error instanceof SearchNotFoundError) {
+    logger.warn(error.message);
+    res.status(404).json({ error: error.message });
     return;
   }
   if (error instanceof SessionNotLoadedError) {

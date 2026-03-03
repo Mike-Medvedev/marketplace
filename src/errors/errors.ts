@@ -32,3 +32,12 @@ export class SessionNotLoadedError extends Error {
     this.name = "SessionNotLoadedError";
   }
 }
+
+export class SearchNotFoundError extends Error {
+  public readonly searchId: string;
+  constructor(id: string) {
+    super(`Search not found: ${id}`);
+    this.name = "SearchNotFoundError";
+    this.searchId = id;
+  }
+}
