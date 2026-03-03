@@ -19,7 +19,7 @@ const notFoundSchema = z.object({ error: z.string() });
 
 export const searchesRouter = TypedRouter(express.Router(), {
   tag: "Searches",
-  basePath: "/searches",
+  basePath: "/api/v1/searches",
 });
 
 searchesRouter.get(
