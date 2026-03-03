@@ -23,12 +23,13 @@ import { searchesRouter } from "@/searches/searches.router.ts";
 import express, { json } from "express";
 import errorHandler from "@/middleware/error.middleware";
 import { TypedRouter, swagger } from "meebo";
-
+import cors from "cors";
 export { getSession } from "@/session-store.ts";
 import packageJson from "../package.json" with { type: "json" };
 
 const app = express();
 app.use(json());
+app.use(cors());
 const v1Router = TypedRouter(express.Router());
 
 app.get("/health", (req, res) => {
