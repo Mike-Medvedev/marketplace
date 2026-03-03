@@ -33,7 +33,6 @@ export async function getSearchById(id: string): Promise<ActiveSearch | null> {
 }
 
 export async function createSearch(body: CreateSearchBody): Promise<ActiveSearch> {
-  const now = new Date().toISOString();
   const search: ActiveSearch = {
     id: randomUUID(),
     criteria: body.criteria,
