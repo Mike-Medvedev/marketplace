@@ -1,6 +1,7 @@
 import express from "express";
 import { TypedRouter } from "meebo";
 import { z } from "zod";
+import { successResponse, errorResponse } from "@/api-response.ts";
 import {
   activeSearchSchema,
   createSearchBodySchema,
@@ -15,7 +16,7 @@ import {
   handleDeleteSearch,
 } from "./searches.routes.ts";
 
-const notFoundSchema = z.object({ error: z.string() });
+const errResponse = errorResponse();
 
 export const searchesRouter = TypedRouter(express.Router(), {
   tag: "Searches",
@@ -26,7 +27,8 @@ searchesRouter.get(
   "/",
   {
     operationId: "getSearches",
-    response: z.array(activeSearchSchema),
+    response: successResponse(z.array(activeSearchSchema)),
+    responses: { 500: errResponse },
     summary: "List all saved searches",
   },
   (req, res, next) => {
@@ -39,8 +41,8 @@ searchesRouter.get(
   {
     operationId: "getSearchById",
     params: searchIdParamsSchema,
-    response: activeSearchSchema,
-    responses: { 404: notFoundSchema },
+    response: successResponse(activeSearchSchema),
+    responses: { 404: errResponse },
     summary: "Get a saved search by ID",
   },
   (req, res, next) => {
@@ -53,7 +55,7 @@ searchesRouter.post(
   {
     operationId: "createSearch",
     request: createSearchBodySchema,
-    response: activeSearchSchema,
+    response: successResponse(activeSearchSchema),
     summary: "Create a new saved search",
   },
   (req, res, next) => {
@@ -67,8 +69,8 @@ searchesRouter.put(
     operationId: "updateSearch",
     params: searchIdParamsSchema,
     request: updateSearchBodySchema,
-    response: activeSearchSchema,
-    responses: { 404: notFoundSchema },
+    response: successResponse(activeSearchSchema),
+    responses: { 404: errResponse },
     summary: "Update a saved search",
   },
   (req, res, next) => {
@@ -81,8 +83,8 @@ searchesRouter.delete(
   {
     operationId: "deleteSearch",
     params: searchIdParamsSchema,
-    response: z.object({}),
-    responses: { 404: notFoundSchema },
+    response: successResponse(z.null()),
+    responses: { 404: errResponse },
     summary: "Delete a saved search",
   },
   (req, res, next) => {

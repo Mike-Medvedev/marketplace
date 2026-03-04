@@ -23,6 +23,8 @@ import { searchesRouter } from "@/searches/searches.router.ts";
 import express, { json } from "express";
 import errorHandler from "@/middleware/error.middleware";
 import { TypedRouter, swagger } from "meebo";
+import "@/meebo.config.ts";
+import { successResponse } from "@/api-response.ts";
 import cors from "cors";
 export { getSession } from "@/session-store.ts";
 import packageJson from "../package.json" with { type: "json" };
@@ -32,15 +34,15 @@ app.use(json());
 app.use(cors());
 const v1Router = TypedRouter(express.Router());
 
-app.get("/health", (req, res) => {
-  res.status(200).json({ status: "healthy" });
+app.get("/health", (_req, res) => {
+  res.status(200).json({ success: true, data: { status: "healthy" } });
 });
 
 v1Router.post(
   "/scrape",
   {
     request: searchMarketPlaceParamsSchema,
-    response: searchMarketPlaceResultSchema,
+    response: successResponse(searchMarketPlaceResultSchema),
     summary: "Searches Marketplace and returns listings",
   },
   (req, res, next) => {

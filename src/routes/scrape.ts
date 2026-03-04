@@ -1,5 +1,6 @@
 import { analyzeListings, filterListings, searchMarketPlace } from "@/functions";
 import { parseScrapeBody } from "@/scrape/parse-scrape-body";
+import { sendSuccess } from "@/api-response";
 import logger from "@/logger/logger";
 import type { Request, Response } from "express";
 
@@ -15,5 +16,5 @@ export async function handleScrape(req: Request, res: Response): Promise<void> {
   console.log(listings);
   // const filtered = await filterListings(listings);
   // const analyzed = await analyzeListings(filtered);
-  res.status(200).json({ listings });
+  sendSuccess(res, { listings });
 }
