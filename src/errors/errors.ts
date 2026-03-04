@@ -33,6 +33,22 @@ export class SessionNotLoadedError extends Error {
   }
 }
 
+/** Thrown when Facebook returns "Log in to continue" (e.g. error 1357001) — session expired or invalid. */
+export class FacebookSessionExpiredError extends Error {
+  public readonly facebookErrorCode?: number;
+  public readonly errorSummary?: string;
+  constructor(
+    message: string = "Facebook session expired or invalid. Please refresh session via POST /webhook/refresh.",
+    facebookErrorCode?: number,
+    errorSummary?: string,
+  ) {
+    super(message);
+    this.name = "FacebookSessionExpiredError";
+    this.facebookErrorCode = facebookErrorCode;
+    this.errorSummary = errorSummary;
+  }
+}
+
 export class SearchNotFoundError extends Error {
   public readonly searchId: string;
   constructor(id: string) {
