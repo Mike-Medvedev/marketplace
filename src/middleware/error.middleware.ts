@@ -1,4 +1,5 @@
 import {
+  FacebookSessionExpiredError,
   FetchListingDescriptionError,
   FetchListingPhotosError,
   NtfyError,
@@ -25,6 +26,11 @@ const errorHandler: ErrorRequestHandler = function (
   if (error instanceof SessionNotLoadedError) {
     logger.warn(error.message);
     sendError(res, 503, "SESSION_NOT_LOADED", error.message);
+    return;
+  }
+  if (error instanceof FacebookSessionExpiredError) {
+    logger.warn(error.message);
+    sendError(res, 401, "FACEBOOK_SESSION_EXPIRED", error.message);
     return;
   }
   if (error instanceof SearchMarketPlaceError) {

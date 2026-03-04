@@ -19,6 +19,7 @@ import {
   DEFAULT_PAGE_DELAY_MS,
 } from "./search.constants";
 import {
+  FacebookSessionExpiredError,
   FetchListingDescriptionError,
   FetchListingPhotosError,
   SearchMarketPlaceError,
@@ -107,16 +108,29 @@ async function fetchOnePage(
       `Search request failed: ${response.status} ${response.statusText}`,
     );
   }
-  const json = (await response.json()) as {
+  const rawText = await response.text();
+  let json: {
     data?: {
       marketplace_search?: {
-        feed_units?: {
-          edges?: SearchResponseEdge[];
-          page_info?: { end_cursor: string | null };
-        };
+        feed_units?: { edges?: SearchResponseEdge[]; page_info?: { end_cursor: string | null } };
       };
     };
   };
+  try {
+    const jsonText = rawText.startsWith("for (;;);") ? rawText.slice(9) : rawText;
+    json = JSON.parse(jsonText);
+  } catch (error) {
+    logger.error(
+      `[searchMarketPlace] Failed to parse Facebook response. First 500 chars: ${rawText.slice(0, 500)}`,
+    );
+    throw error;
+  }
+  const fbResponse = json as { error?: number; errorSummary?: string; errorDescription?: string };
+  if (fbResponse.error != null) {
+    const msg =
+      fbResponse.errorDescription ?? fbResponse.errorSummary ?? "Facebook returned an error.";
+    throw new FacebookSessionExpiredError(msg, fbResponse.error, fbResponse.errorSummary);
+  }
   const feedUnits = json.data?.marketplace_search?.feed_units;
   if (!feedUnits?.edges) {
     return { listings: [], nextCursor: null };
