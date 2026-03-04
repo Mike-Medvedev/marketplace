@@ -16,13 +16,13 @@ export const searchMarketPlaceParamsSchema = z
   .optional()
   .default({});
 
-/** Listing shape returned by search (no photos/description). */
+/** Listing shape returned by search (no photos/description). location = Facebook's reverse_geocode object (e.g. { city, state, city_page }). */
 const scrapeListingSchema = z.object({
   id: z.string(),
   url: z.string(),
   price: z.string(),
   title: z.string(),
-  location: z.string(),
+  location: z.record(z.string(), z.unknown()),
   primaryPhotoUri: z.string(),
 });
 

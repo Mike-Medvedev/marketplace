@@ -3,7 +3,8 @@ export interface MarketplaceListing {
   url: string;
   price: string;
   title: string;
-  location: string;
+  /** Facebook reverse_geocode object (e.g. { city, state, city_page }). */
+  location: Record<string, unknown>;
   primaryPhotoUri: string;
   photos: { uri: string }[];
   description: string;
@@ -50,6 +51,6 @@ export interface RawListing {
   id: string;
   listing_price: { amount: string };
   marketplace_listing_title: string;
-  location: { reverse_geocode: string };
+  location: { reverse_geocode: Record<string, unknown> };
   primary_listing_photo: { image: { uri: string } };
 }
