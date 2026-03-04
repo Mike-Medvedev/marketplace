@@ -2,13 +2,14 @@ import { env } from "@/env.ts";
 import { setSession } from "@/session-store.ts";
 import { NtfyError } from "@/errors/errors";
 import { sendNtfyNotification } from "@/ntfy";
+import { sendSuccess, sendError } from "@/api-response";
 import logger from "@/logger/logger";
 import type { Request, Response } from "express";
 
 export async function handleAnalyzedListings(req: Request, res: Response): Promise<void> {
   logger.info("Recieved analyzed listings in webhook, notifying user");
   logger.info(req.body);
-  res.sendStatus(200);
+  sendSuccess(res, null);
 }
 
 export async function handleContainerStarted(req: Request, res: Response): Promise<void> {
@@ -28,7 +29,7 @@ export async function handleContainerStarted(req: Request, res: Response): Promi
   }
 
   logger.info(`[container-started] Notification sent for container at ${ip}`);
-  res.json({ success: true });
+  sendSuccess(res, null);
 }
 
 export async function handleRefresh(req: Request, res: Response): Promise<void> {
@@ -36,11 +37,11 @@ export async function handleRefresh(req: Request, res: Response): Promise<void> 
 
   if (!headers || !body) {
     logger.warn("[refresh] Received invalid session data");
-    res.status(400).json({ error: "Missing headers or body" });
+    sendError(res, 400, "BAD_REQUEST", "Missing headers or body");
     return;
   }
 
   await setSession({ headers, body, capturedAt });
   logger.info(`[refresh] Session updated at ${capturedAt}`);
-  res.json({ success: true });
+  sendSuccess(res, null);
 }
