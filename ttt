@@ -1,6 +1,0 @@
-Convert Express-style path params to OpenAPI syntax in registerPath.
-When a route is defined as router.get("/:id", ...), the path string uses Express syntax (:id). But the OpenAPI 3.0 spec requires path parameters to use {id} syntax. Right now meebo passes the Express-style path directly to registry.registerPath(), which produces invalid OpenAPI output like /searches/:id instead of /searches/{id}.
-This breaks code generators (hey-api, openapi-generator, orval) because they can't parse :id as a path parameter — they expect {id} to interpolate the value.
-Fix: In TypedRouter, where the OpenAPI path is built, convert :paramName to {paramName} before passing to registerPath:
-// Beforeconst openApiPath = basePath + pathStr;// Afterconst openApiPath = (basePath + pathStr).replace(/:(\w+)/g, "{$1}");
-This is a single regex that converts every :word to {word} — handles :id, :userId, :slug, multiple params like /:org/:repo, etc. Express routing still receives the original :id path (line 390 uses the unmodified path), so runtime behavior is unchanged. Only the OpenAPI documentation is affected.
