@@ -32,7 +32,7 @@ import packageJson from "../package.json" with { type: "json" };
 const app = express();
 app.use(json());
 app.use(cors());
-const v1Router = TypedRouter(express.Router());
+const v1Router = TypedRouter(express.Router(), { basePath: "/api/v1" });
 
 app.get("/health", (_req, res) => {
   res.status(200).json({ success: true, data: { status: "healthy" } });
@@ -41,6 +41,7 @@ app.get("/health", (_req, res) => {
 v1Router.post(
   "/scrape",
   {
+    operationId: "postScrape",
     request: searchMarketPlaceParamsSchema,
     response: successResponse(searchMarketPlaceResultSchema),
     summary: "Searches Marketplace and returns listings",
@@ -50,13 +51,13 @@ v1Router.post(
   },
 );
 
-v1Router.post("/webhook/analyzed-listings", { skipValidation: true }, (req, res, next) => {
+app.post("/webhook/analyzed-listings", (req, res, next) => {
   handleAnalyzedListings(req, res).catch(next);
 });
-v1Router.post("/webhook/container-started", { skipValidation: true }, (req, res, next) => {
+app.post("/webhook/container-started", (req, res, next) => {
   handleContainerStarted(req, res).catch(next);
 });
-v1Router.post("/webhook/refresh", { skipValidation: true }, (req, res, next) => {
+app.post("/webhook/refresh", (req, res, next) => {
   handleRefresh(req, res).catch(next);
 });
 
