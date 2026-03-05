@@ -1,6 +1,6 @@
 import type { SearchMarketPlaceParams } from "./scrape.types.ts";
 
-export const DEFAULT_PAGE_DELAY_MS = 5_000;
+export const DEFAULT_PAGE_DELAY_MS = 2_000;
 export const DEFAULT_LISTING_FETCH_DELAY_MS = 7_000;
 export const DEFAULT_PAGE_COUNT = 1;
 
