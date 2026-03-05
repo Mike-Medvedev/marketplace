@@ -24,6 +24,14 @@ export const WebhooksController = {
     sendSuccess(res, null);
   },
 
+  async handleContainerExited(req: Request, res: Response) {
+    const { reason } = req.body;
+    const exitReason = typeof reason === "string" ? reason : "Unknown error";
+    logger.warn(`[container-exited] Container exited: ${exitReason}`);
+    await publishSyncEvent({ type: "container_exited", reason: exitReason });
+    sendSuccess(res, null);
+  },
+
   async handleRefresh(req: Request, res: Response) {
     const { headers, body, capturedAt } = req.body;
 

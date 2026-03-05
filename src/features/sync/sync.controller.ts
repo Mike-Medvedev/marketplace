@@ -1,7 +1,7 @@
 import { isSessionValid } from "@/features/facebook/facebook.service.ts";
 import { resumeAllSearches } from "@/features/searches/searches.repository.ts";
-import { subscribeSyncEvents, type SyncEvent } from "@/infra/redis/redis.pubsub.ts";
-import { startContainerGroup } from "./sync.aci.ts";
+import { subscribeSyncEvents, publishSyncEvent, type SyncEvent } from "@/infra/redis/redis.pubsub.ts";
+import { startContainerGroup, pollContainerState } from "./sync.aci.ts";
 import { SYNC_TIMEOUT_MS } from "./sync.constants.ts";
 import logger from "@/logger/logger.ts";
 import type { Request, Response } from "express";
@@ -27,10 +27,12 @@ export const SyncController = {
 
     let unsubscribe: (() => void) | null = null;
     let timeout: ReturnType<typeof setTimeout> | null = null;
+    const pollerAbort = new AbortController();
 
     const cleanup = () => {
       if (unsubscribe) unsubscribe();
       if (timeout) clearTimeout(timeout);
+      pollerAbort.abort();
       unsubscribe = null;
       timeout = null;
     };
@@ -52,6 +54,12 @@ export const SyncController = {
         } else if (event.type === "needs_login") {
           logger.info("[sync] Human login required, forwarding noVNC URL to client");
           sendSSE(res, { status: "needs_login", novncUrl: event.novncUrl });
+        } else if (event.type === "container_exited") {
+          logger.warn(`[sync] Container exited: ${event.reason}`);
+          sendSSE(res, { status: "container_exited", reason: event.reason });
+          cleanup();
+          res.end();
+          resolve();
         }
       };
 
@@ -81,6 +89,14 @@ export const SyncController = {
       res.end();
       return;
     }
+
+    pollContainerState(pollerAbort.signal).then((state) => {
+      if (state && !pollerAbort.signal.aborted) {
+        publishSyncEvent({ type: "container_exited", reason: `Container state: ${state}` }).catch(
+          (err) => logger.error("[sync] Failed to publish container_exited:", err),
+        );
+      }
+    });
 
     await syncComplete;
   },
