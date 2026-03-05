@@ -1,6 +1,4 @@
-import {
-  FB_GRAPHQL_URL,
-} from "@/features/facebook/facebook.constants.ts";
+import { FB_GRAPHQL_URL } from "@/features/facebook/facebook.constants.ts";
 import {
   marketplaceSearchRequestConfig,
   marketplaceProductListingPhotosRequestConfig,
