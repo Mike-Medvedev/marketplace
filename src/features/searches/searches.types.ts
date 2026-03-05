@@ -21,11 +21,11 @@ export const monitoringSettingsSchema = z.object({
 });
 
 export const activeSearchSchema = z.object({
-  id: z.string().uuid(),
+  id: z.uuid(),
   criteria: searchCriteriaSchema,
   settings: monitoringSettingsSchema,
   status: searchStatusSchema,
-  lastRun: z.string().datetime().nullable(),
+  lastRun: z.iso.datetime().nullable(),
 });
 
 export const createSearchBodySchema = z.object({
@@ -39,7 +39,7 @@ export const updateSearchBodySchema = z.object({
 });
 
 export const searchIdParamsSchema = z.object({
-  id: z.string().uuid(),
+  id: z.uuid(),
 });
 
 export type ActiveSearch = z.infer<typeof activeSearchSchema>;

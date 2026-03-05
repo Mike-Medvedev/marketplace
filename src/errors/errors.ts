@@ -59,3 +59,40 @@ export class SearchNotFoundError extends Error {
     this.searchId = id;
   }
 }
+
+export class UnauthorizedError extends Error {
+  constructor(message: string = "Authentication required") {
+    super(message);
+    this.name = "UnauthorizedError";
+  }
+}
+
+export class UserAlreadyExistsError extends Error {
+  public readonly email: string;
+  constructor(email: string) {
+    super(`User already exists: ${email}`);
+    this.name = "UserAlreadyExistsError";
+    this.email = email;
+  }
+}
+
+export class InvalidCredentialsError extends Error {
+  constructor() {
+    super("Invalid email or password");
+    this.name = "InvalidCredentialsError";
+  }
+}
+
+export class EmailNotVerifiedError extends Error {
+  constructor() {
+    super("Email not verified. Please check your inbox for the verification link.");
+    this.name = "EmailNotVerifiedError";
+  }
+}
+
+export class VerificationTokenExpiredError extends Error {
+  constructor() {
+    super("Verification token is invalid or has expired");
+    this.name = "VerificationTokenExpiredError";
+  }
+}

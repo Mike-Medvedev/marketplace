@@ -4,6 +4,7 @@ import {
 } from "@/features/searches/searches.repository.ts";
 import { subscribeSyncEvents, publishSyncEvent, type SyncEvent } from "@/infra/redis/redis.pubsub.ts";
 import { sendResyncEmail } from "@/infra/email/email.client.ts";
+import { env } from "@/configs/env.ts";
 import { startContainerGroup, pollContainerState } from "./sync.aci.ts";
 import { SYNC_TIMEOUT_MS } from "./sync.constants.ts";
 import logger from "@/logger/logger.ts";
@@ -44,7 +45,7 @@ export async function triggerAutoResync(): Promise<void> {
         const paused = await pauseAllSearches();
         logger.warn(`[auto-resync] Paused ${paused} searches, sending email notification`);
         try {
-          await sendResyncEmail();
+          await sendResyncEmail(env.SMTP_USER);
         } catch (err) {
           logger.error("[auto-resync] Failed to send resync email:", err);
         }

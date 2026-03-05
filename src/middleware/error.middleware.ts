@@ -1,11 +1,16 @@
 import {
+  EmailNotVerifiedError,
   FacebookSessionExpiredError,
   FetchListingDescriptionError,
   FetchListingPhotosError,
   GeocodingError,
+  InvalidCredentialsError,
   SearchMarketPlaceError,
   SearchNotFoundError,
   SessionNotLoadedError,
+  UnauthorizedError,
+  UserAlreadyExistsError,
+  VerificationTokenExpiredError,
 } from "@/errors/errors.ts";
 import { sendError } from "@/utils/api-response.ts";
 import { triggerAutoResync } from "@/features/sync/sync.service.ts";
@@ -19,6 +24,31 @@ const errorHandler: ErrorRequestHandler = function (
   res: Response,
   _next: NextFunction,
 ) {
+  if (error instanceof UnauthorizedError) {
+    logger.warn(error.message);
+    sendError(res, 401, "UNAUTHORIZED", error.message);
+    return;
+  }
+  if (error instanceof InvalidCredentialsError) {
+    logger.warn(error.message);
+    sendError(res, 401, "INVALID_CREDENTIALS", error.message);
+    return;
+  }
+  if (error instanceof UserAlreadyExistsError) {
+    logger.warn(error.message);
+    sendError(res, 409, "USER_ALREADY_EXISTS", error.message);
+    return;
+  }
+  if (error instanceof EmailNotVerifiedError) {
+    logger.warn(error.message);
+    sendError(res, 403, "EMAIL_NOT_VERIFIED", error.message);
+    return;
+  }
+  if (error instanceof VerificationTokenExpiredError) {
+    logger.warn(error.message);
+    sendError(res, 400, "VERIFICATION_TOKEN_EXPIRED", error.message);
+    return;
+  }
   if (error instanceof GeocodingError) {
     logger.warn(error.message);
     sendError(res, 400, "GEOCODING_ERROR", error.message);
