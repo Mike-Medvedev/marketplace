@@ -6,7 +6,8 @@ const SYNC_CHANNEL = "sync:events";
 
 export type SyncEvent =
   | { type: "session_refreshed" }
-  | { type: "needs_login"; novncUrl: string };
+  | { type: "needs_login"; novncUrl: string }
+  | { type: "container_exited"; reason: string };
 
 /**
  * Dedicated Redis connection for Pub/Sub subscriptions.

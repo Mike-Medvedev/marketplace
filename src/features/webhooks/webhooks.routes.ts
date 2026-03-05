@@ -28,6 +28,16 @@ webhookRouter.post(
 );
 
 webhookRouter.post(
+  "/container-exited",
+  {
+    operationId: "webhookContainerExited",
+    summary: "Playwright container reports an error or unexpected exit",
+    skipValidation: true,
+  },
+  WebhooksController.handleContainerExited,
+);
+
+webhookRouter.post(
   "/refresh",
   {
     operationId: "webhookRefresh",
