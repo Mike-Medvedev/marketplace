@@ -1,0 +1,49 @@
+---
+description: Interfaces belong in .types.ts files, constants belong in .constants.ts files
+globs: "**/*.ts"
+alwaysApply: false
+---
+
+# Types and Constants Placement
+
+## Interfaces and Types
+
+All TypeScript interfaces, type aliases, and Zod schemas must live in a dedicated `.types.ts` file — never inline in service, controller, or route files.
+
+```typescript
+// ❌ BAD — interface defined in service file
+// scrape.service.ts
+interface SearchResult { ... }
+export function search(): SearchResult { ... }
+
+// ✅ GOOD — interface in types file, imported where needed
+// scrape.types.ts
+export interface SearchResult { ... }
+
+// scrape.service.ts
+import type { SearchResult } from "./scrape.types.ts";
+export function search(): SearchResult { ... }
+```
+
+- **Feature-specific types** → `src/features/<feature>/<feature>.types.ts`
+- **Shared types** → `src/types/`
+
+## Constants
+
+All constants (`const` values used as configuration, defaults, or fixed data) must live in a dedicated `.constants.ts` file — never inline in service or controller files.
+
+```typescript
+// ❌ BAD — constant defined in service file
+// scrape.service.ts
+const DEFAULT_PAGE_COUNT = 1;
+
+// ✅ GOOD — constant in constants file
+// scrape.constants.ts
+export const DEFAULT_PAGE_COUNT = 1;
+
+// scrape.service.ts
+import { DEFAULT_PAGE_COUNT } from "./scrape.constants.ts";
+```
+
+- **Feature-specific constants** → `src/features/<feature>/<feature>.constants.ts`
+- **Shared constants** → `src/configs/` or a shared `constants.ts`

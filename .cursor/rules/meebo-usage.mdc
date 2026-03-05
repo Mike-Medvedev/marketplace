@@ -1,0 +1,82 @@
+---
+description: Conventions for using the meebo library for typed Express routes and OpenAPI docs
+globs: "**/*.routes.ts"
+alwaysApply: false
+---
+
+# Meebo Usage
+
+Meebo adds Zod-based runtime validation and auto-generated Swagger/OpenAPI docs to Express routes. Use it for all endpoint definitions.
+
+## Router Setup
+
+Every feature router must use `TypedRouter` with `tag` and `basePath`:
+
+```typescript
+import { TypedRouter } from "meebo";
+import express from "express";
+
+const BookRouter = TypedRouter(express.Router(), {
+  tag: "Books",
+  basePath: "/api/v1/books",
+});
+```
+
+## Route Definitions
+
+Pass controller methods directly as the handler — no `.catch(next)` wrapper needed. Express 5 automatically catches async errors and forwards them to the error middleware.
+
+```typescript
+// ✅ GOOD — pass controller method directly
+BookRouter.get("/:id", {
+  operationId: "getBookById",
+  summary: "Get a book by ID",
+  params: z.object({ id: z.string() }),
+  response: BookSchema,
+}, BookController.getBookById);
+
+// ❌ BAD — unnecessary .catch(next) wrapper
+BookRouter.get("/:id", { ... }, (req, res, next) => {
+  BookController.getBookById(req, res).catch(next);
+});
+```
+
+## Required Schema Options
+
+| Field | Required | Purpose |
+|-------|----------|---------|
+| `operationId` | Always | Unique ID for the OpenAPI operation |
+| `summary` | Always | Short description shown in Swagger UI |
+| `tags` | Optional | Override the router-level `tag` |
+| `request` | When needed | Zod schema for `req.body` |
+| `response` | When needed | Zod schema for the 200 response |
+| `responses` | When needed | Map of status code → Zod schema |
+| `params` | When needed | Zod schema for `req.params` |
+| `query` | When needed | Zod schema for `req.query` |
+| `headers` | When needed | Zod schema for `req.headers` |
+
+## Multiple Response Codes
+
+```typescript
+BookRouter.get("/:id", {
+  operationId: "getBookById",
+  summary: "Get a book by ID",
+  params: z.object({ id: z.string() }),
+  response: BookSchema,
+  responses: {
+    404: z.object({ error: z.string() }),
+    500: z.object({ error: z.string() }),
+  },
+}, BookController.getBookById);
+```
+
+## Schema Metadata
+
+Use `.openapi()` on Zod schemas to enrich Swagger docs:
+
+```typescript
+const BookSchema = z.object({
+  title: z.string().openapi({ example: "The Great Gatsby" }),
+  price: z.number().openapi({ example: 12.99 }),
+}).openapi({ description: "A book listing" });
+```
