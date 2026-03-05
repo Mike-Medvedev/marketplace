@@ -1,4 +1,5 @@
 import { setSession } from "@/features/facebook/facebook.repository.ts";
+import { publishSyncEvent } from "@/infra/redis/redis.pubsub.ts";
 import { sendSuccess, sendError } from "@/utils/api-response.ts";
 import logger from "@/logger/logger.ts";
 import type { Request, Response } from "express";
@@ -10,9 +11,14 @@ export const WebhooksController = {
     sendSuccess(res, null);
   },
 
-  async handleContainerStarted(req: Request, res: Response) {
-    const { ip, novnc_url } = req.body;
-    logger.info(`[container-started] Container started at ${ip}, noVNC: ${novnc_url}`);
+  async handleNeedsLogin(req: Request, res: Response) {
+    const { novncUrl } = req.body;
+    if (!novncUrl) {
+      sendError(res, 400, "BAD_REQUEST", "Missing novncUrl");
+      return;
+    }
+    logger.info(`[needs-login] Human login required, noVNC: ${novncUrl}`);
+    await publishSyncEvent({ type: "needs_login", novncUrl });
     sendSuccess(res, null);
   },
 
@@ -27,6 +33,7 @@ export const WebhooksController = {
 
     await setSession({ headers, body, capturedAt });
     logger.info(`[refresh] Session updated at ${capturedAt}`);
+    await publishSyncEvent({ type: "session_refreshed" });
     sendSuccess(res, null);
   },
 };

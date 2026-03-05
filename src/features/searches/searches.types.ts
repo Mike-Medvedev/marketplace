@@ -4,7 +4,7 @@ export const dateListedOptionSchema = z.enum(["24h", "7d", "30d"]);
 
 export const notificationMethodSchema = z.enum(["email", "sms", "webhook"]);
 
-export const searchStatusSchema = z.enum(["running", "refresh", "error"]);
+export const searchStatusSchema = z.enum(["running", "refresh", "error", "needs_attention"]);
 
 export const searchCriteriaSchema = z.object({
   query: z.string(),

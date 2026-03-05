@@ -77,3 +77,31 @@ export async function deleteSearch(id: string): Promise<boolean> {
 
   return true;
 }
+
+export async function pauseAllSearches(): Promise<number> {
+  const searches = await getAllSearches();
+  const running = searches.filter((s) => s.status === "running");
+  if (running.length === 0) return 0;
+
+  const pipeline = redis.pipeline();
+  for (const search of running) {
+    const updated: ActiveSearch = { ...search, status: "needs_attention" };
+    pipeline.set(searchKey(search.id), JSON.stringify(updated));
+  }
+  await pipeline.exec();
+  return running.length;
+}
+
+export async function resumeAllSearches(): Promise<number> {
+  const searches = await getAllSearches();
+  const paused = searches.filter((s) => s.status === "needs_attention");
+  if (paused.length === 0) return 0;
+
+  const pipeline = redis.pipeline();
+  for (const search of paused) {
+    const updated: ActiveSearch = { ...search, status: "running" };
+    pipeline.set(searchKey(search.id), JSON.stringify(updated));
+  }
+  await pipeline.exec();
+  return paused.length;
+}

@@ -1,6 +1,7 @@
 import { app } from "./app.ts";
 import { env } from "@/configs/env.ts";
 import { redis } from "@/infra/redis/redis.client.ts";
+import { disconnectSubscriber } from "@/infra/redis/redis.pubsub.ts";
 
 const server = app.listen(env.PORT, () => console.log(`Server listening on port ${env.PORT}`));
 
@@ -10,6 +11,7 @@ async function shutdown() {
   isShuttingDown = true;
   console.log("Shutting down...");
   try {
+    disconnectSubscriber();
     redis.disconnect();
   } catch (err) {
     console.error("Redis disconnect error:", err);

@@ -41,12 +41,27 @@ BookRouter.get("/:id", { ... }, (req, res, next) => {
 });
 ```
 
+## Non-Standard Endpoints (SSE, streaming, etc.)
+
+For endpoints that don't use standard JSON request/response (e.g. SSE streams), use `skipValidation: true` instead of providing Zod schemas. Still provide `operationId` and `summary`.
+
+```typescript
+SyncRouter.get("/sync", {
+  operationId: "beginIdentitySync",
+  summary: "Start identity sync via SSE",
+  skipValidation: true,
+}, SyncController.beginIdentitySync);
+```
+
+Never use a plain `express.Router()` — always use `TypedRouter` so every endpoint has an `operationId` and `summary`.
+
 ## Required Schema Options
 
 | Field | Required | Purpose |
 |-------|----------|---------|
 | `operationId` | Always | Unique ID for the OpenAPI operation |
 | `summary` | Always | Short description shown in Swagger UI |
+| `skipValidation` | When needed | Skip Zod validation for non-standard endpoints (SSE, etc.) |
 | `tags` | Optional | Override the router-level `tag` |
 | `request` | When needed | Zod schema for `req.body` |
 | `response` | When needed | Zod schema for the 200 response |
