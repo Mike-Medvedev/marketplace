@@ -1,4 +1,4 @@
-import { getSession } from "@/features/facebook/facebook.repository.ts";
+import { isSessionValid } from "@/features/facebook/facebook.service.ts";
 import { resumeAllSearches } from "@/features/searches/searches.repository.ts";
 import { subscribeSyncEvents, type SyncEvent } from "@/infra/redis/redis.pubsub.ts";
 import { startContainerGroup } from "./sync.aci.ts";
@@ -18,8 +18,8 @@ export const SyncController = {
       Connection: "keep-alive",
     });
 
-    const existingSession = await getSession();
-    if (existingSession) {
+    const valid = await isSessionValid();
+    if (valid) {
       sendSSE(res, { status: "already_synced" });
       res.end();
       return;

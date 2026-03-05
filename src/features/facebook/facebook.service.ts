@@ -1,7 +1,7 @@
 import { SessionNotLoadedError } from "@/errors/errors.ts";
 import logger from "@/logger/logger.ts";
 import { getSession } from "./facebook.repository.ts";
-import { FIXED_HEADERS, BODY_DEFAULTS } from "./facebook.constants.ts";
+import { FIXED_HEADERS, BODY_DEFAULTS, FB_GRAPHQL_URL, REQUEST_SPECIFIC } from "./facebook.constants.ts";
 import type { SessionConfig } from "./facebook.types.ts";
 
 /** Builds request config from the Redis-backed Facebook session (set via /webhook/refresh). Returns null if no session. */
@@ -53,4 +53,43 @@ async function requireSession(): Promise<SessionConfig> {
 /** Session config for requests. Throws if no session has been set via /webhook/refresh. */
 export function getSessionOrThrow(): Promise<SessionConfig> {
   return requireSession();
+}
+
+/**
+ * Probes Facebook with a lightweight GraphQL request to check whether the
+ * stored session is still accepted. Returns true if valid, false if expired
+ * or missing.
+ */
+export async function isSessionValid(): Promise<boolean> {
+  const session = await getSessionConfig();
+  if (!session) return false;
+
+  try {
+    const body = new URLSearchParams({
+      ...session.body,
+      ...REQUEST_SPECIFIC.SEARCH,
+      variables: JSON.stringify({ count: 0, cursor: null }),
+    });
+
+    const response = await fetch(FB_GRAPHQL_URL, {
+      method: "POST",
+      headers: {
+        ...session.headers,
+        cookie: session.cookie,
+        "x-fb-friendly-name": REQUEST_SPECIFIC.SEARCH.fb_api_req_friendly_name,
+        "x-fb-lsd": session.body.lsd ?? "",
+      },
+      body: body.toString(),
+    });
+
+    if (!response.ok) return false;
+
+    const rawText = await response.text();
+    const jsonText = rawText.startsWith("for (;;);") ? rawText.slice(9) : rawText;
+    const json = JSON.parse(jsonText) as { error?: number };
+    return json.error == null;
+  } catch (err) {
+    logger.warn("[session] Probe failed:", err);
+    return false;
+  }
 }
