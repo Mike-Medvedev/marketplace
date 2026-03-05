@@ -1,7 +1,7 @@
 import {
   pauseAllSearches,
   resumeAllSearches,
-} from "@/features/searches/searches.repository.ts";
+} from "@/features/searches/searches.service.ts";
 import { subscribeSyncEvents, publishSyncEvent, type SyncEvent } from "@/infra/redis/redis.pubsub.ts";
 import { sendResyncEmail } from "@/infra/email/email.client.ts";
 import { env } from "@/configs/env.ts";

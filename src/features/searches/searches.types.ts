@@ -4,6 +4,14 @@ export const dateListedOptionSchema = z.enum(["24h", "7d", "30d"]);
 
 export const notificationMethodSchema = z.enum(["email", "sms", "webhook"]);
 
+export const searchFrequencySchema = z.enum([
+  "every_1h",
+  "every_2h",
+  "every_6h",
+  "every_12h",
+  "every_24h",
+]);
+
 export const searchStatusSchema = z.enum(["running", "refresh", "error", "needs_attention"]);
 
 export const searchCriteriaSchema = z.object({
@@ -15,9 +23,10 @@ export const searchCriteriaSchema = z.object({
 });
 
 export const monitoringSettingsSchema = z.object({
-  frequency: z.string(),
+  frequency: searchFrequencySchema,
   listingsPerCheck: z.number().int().min(1),
-  notifications: z.array(notificationMethodSchema),
+  notificationType: notificationMethodSchema,
+  notificationTarget: z.string().min(1),
 });
 
 export const activeSearchSchema = z.object({
@@ -42,6 +51,8 @@ export const searchIdParamsSchema = z.object({
   id: z.uuid(),
 });
 
+export type SearchFrequency = z.infer<typeof searchFrequencySchema>;
+export type NotificationMethod = z.infer<typeof notificationMethodSchema>;
 export type ActiveSearch = z.infer<typeof activeSearchSchema>;
 export type CreateSearchBody = z.infer<typeof createSearchBodySchema>;
 export type UpdateSearchBody = z.infer<typeof updateSearchBodySchema>;

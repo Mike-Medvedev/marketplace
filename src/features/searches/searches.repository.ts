@@ -78,6 +78,13 @@ export async function deleteSearch(id: string): Promise<boolean> {
   return true;
 }
 
+export async function updateLastRun(id: string, isoTimestamp: string): Promise<void> {
+  const existing = await getSearchById(id);
+  if (!existing) return;
+  const updated: ActiveSearch = { ...existing, lastRun: isoTimestamp };
+  await redis.set(searchKey(id), JSON.stringify(updated));
+}
+
 export async function pauseAllSearches(): Promise<number> {
   const searches = await getAllSearches();
   const running = searches.filter((s) => s.status === "running");

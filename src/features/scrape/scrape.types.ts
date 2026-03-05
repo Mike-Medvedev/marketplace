@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { searchFrequencySchema, type SearchFrequency } from "@/features/searches/searches.types.ts";
 
 export interface MarketplaceListing {
   id: string;
@@ -53,8 +54,8 @@ export interface SearchMarketPlaceParams {
   pageDelayMs?: number;
   /** Delay in ms between each listing's photo+description fetch to avoid rate limiting (default 1500). */
   listingFetchDelayMs?: number;
-  /** How often to repeat this search (e.g. "every_30m", "every_1h", "every_6h", "every_24h"). */
-  searchFrequency?: string;
+  /** How often to repeat this search (e.g. "every_1h", "every_6h", "every_24h"). */
+  searchFrequency?: SearchFrequency;
 }
 
 export interface SearchMarketPlaceResult {
@@ -87,7 +88,7 @@ export const searchMarketPlaceParamsSchema = z
     pageCount: z.coerce.number().optional(),
     pageDelayMs: z.coerce.number().optional(),
     listingFetchDelayMs: z.coerce.number().optional(),
-    searchFrequency: z.string().optional(),
+    searchFrequency: searchFrequencySchema.optional(),
   })
   .optional()
   .default({});
