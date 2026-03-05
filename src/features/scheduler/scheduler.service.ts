@@ -69,6 +69,13 @@ export function scheduleSearch(search: ActiveSearch): void {
   }
 
   const intervalMs = FREQUENCY_MS[search.settings.frequency];
+  if (!intervalMs || intervalMs <= 0) {
+    logger.error(
+      `[scheduler] Invalid frequency "${search.settings.frequency}" for search ${search.id}, skipping`,
+    );
+    return;
+  }
+
   logger.info(
     `[scheduler] Scheduling "${search.criteria.query}" every ${intervalMs / 60_000}min (${search.id})`,
   );
