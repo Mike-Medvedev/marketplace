@@ -96,3 +96,19 @@ export class VerificationTokenExpiredError extends Error {
     this.name = "VerificationTokenExpiredError";
   }
 }
+
+export class SchedulerError extends Error {
+  public readonly searchId: string;
+  constructor(searchId: string, detail?: string) {
+    super(`Scheduler error for search ${searchId}${detail ? `: ${detail}` : ""}`);
+    this.name = "SchedulerError";
+    this.searchId = searchId;
+  }
+}
+
+export class NotificationError extends Error {
+  constructor(message: string, cause?: unknown) {
+    super(message, { cause: cause instanceof Error ? cause : undefined });
+    this.name = "NotificationError";
+  }
+}

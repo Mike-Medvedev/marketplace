@@ -5,6 +5,8 @@ import {
   FetchListingPhotosError,
   GeocodingError,
   InvalidCredentialsError,
+  NotificationError,
+  SchedulerError,
   SearchMarketPlaceError,
   SearchNotFoundError,
   SessionNotLoadedError,
@@ -85,6 +87,16 @@ const errorHandler: ErrorRequestHandler = function (
   if (error instanceof FetchListingDescriptionError) {
     logger.error(error);
     sendError(res, 500, "FETCH_DESCRIPTION_ERROR", error.message);
+    return;
+  }
+  if (error instanceof SchedulerError) {
+    logger.error(error);
+    sendError(res, 500, "SCHEDULER_ERROR", error.message);
+    return;
+  }
+  if (error instanceof NotificationError) {
+    logger.error(error);
+    sendError(res, 500, "NOTIFICATION_ERROR", error.message);
     return;
   }
   if (error instanceof APIError) {
