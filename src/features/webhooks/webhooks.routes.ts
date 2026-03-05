@@ -17,12 +17,12 @@ webhookRouter.post(
 );
 
 webhookRouter.post(
-  "/container-started",
+  "/needs-login",
   {
-    operationId: "webhookContainerStarted",
-    summary: "Receive container started notification",
+    operationId: "webhookNeedsLogin",
+    summary: "Playwright container signals that human login is required",
   },
-  WebhooksController.handleContainerStarted,
+  WebhooksController.handleNeedsLogin,
 );
 
 webhookRouter.post(

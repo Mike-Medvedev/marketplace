@@ -57,6 +57,20 @@ if (error instanceof BookNotFoundError) {
 }
 ```
 
+## Route Registration
+
+Always pass controller methods directly to the router — never wrap them in `(req, res, next) => ...` and never use `.catch(next)`. This applies to both `TypedRouter` and plain `express.Router()`.
+
+```typescript
+// ❌ BAD — wrapper + .catch(next)
+router.get("/sync", (req, res, next) => {
+  SyncController.beginIdentitySync(req, res).catch(next);
+});
+
+// ✅ GOOD — pass method directly
+router.get("/sync", SyncController.beginIdentitySync);
+```
+
 ## Rules
 
 - Every new named error must be added to `src/errors/errors.ts`
@@ -65,3 +79,4 @@ if (error instanceof BookNotFoundError) {
 - Use `sendError(res, status, "CODE", message)` from `src/utils/api-response.ts`
 - Controllers never catch-and-respond for domain errors — let them propagate to the global handler
 - No `.catch(next)` wrappers in route definitions — Express 5 handles this
+- No `(req, res, next) => handler(req, res).catch(next)` wrappers — pass the handler directly

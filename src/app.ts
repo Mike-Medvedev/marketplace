@@ -6,6 +6,7 @@ import errorHandler from "@/middleware/error.middleware.ts";
 import { scrapeRouter } from "@/features/scrape/scrape.routes.ts";
 import { searchesRouter } from "@/features/searches/searches.routes.ts";
 import { webhookRouter } from "@/features/webhooks/webhooks.routes.ts";
+import { syncRouter } from "@/features/sync/sync.routes.ts";
 import packageJson from "../package.json" with { type: "json" };
 
 const app = express();
@@ -17,6 +18,7 @@ app.get("/health", (_req, res) => {
 });
 
 app.use("/api/v1", scrapeRouter);
+app.use("/api/v1", syncRouter);
 app.use("/api/v1/searches", searchesRouter);
 app.use("/webhook", webhookRouter);
 

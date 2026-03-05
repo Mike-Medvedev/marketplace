@@ -7,6 +7,7 @@ import {
   SessionNotLoadedError,
 } from "@/errors/errors.ts";
 import { sendError } from "@/utils/api-response.ts";
+import { triggerAutoResync } from "@/features/sync/sync.service.ts";
 import { APIError } from "openai";
 import logger from "@/logger/logger.ts";
 import type { ErrorRequestHandler, Request, Response, NextFunction } from "express";
@@ -30,6 +31,9 @@ const errorHandler: ErrorRequestHandler = function (
   if (error instanceof FacebookSessionExpiredError) {
     logger.warn(error.message);
     sendError(res, 401, "FACEBOOK_SESSION_EXPIRED", error.message);
+    triggerAutoResync().catch((err) => {
+      logger.error("[error-middleware] Auto-resync failed:", err);
+    });
     return;
   }
   if (error instanceof SearchMarketPlaceError) {
