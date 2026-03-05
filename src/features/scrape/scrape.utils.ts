@@ -20,17 +20,31 @@ export function parseScrapeBody(body: unknown): SearchMarketPlaceParams {
   return params;
 }
 
-/** Extracts search config (query, location, price, radius) from full params. */
+interface GeocodedLocation {
+  latitude: number;
+  longitude: number;
+  locationId: string;
+}
+
+/**
+ * Builds the internal search config for Facebook.
+ * Geocoded location (lat/lng/slug) is passed in from the service layer when `params.location` was provided.
+ */
 export function pickSearchConfig(
   params: SearchMarketPlaceParams,
+  geocoded?: GeocodedLocation,
 ): Partial<MarketplaceSearchConfig> {
   const config: Partial<MarketplaceSearchConfig> = {};
   if (params.query != null) config.query = params.query;
-  if (params.locationId != null) config.locationId = params.locationId;
-  if (params.latitude != null) config.latitude = params.latitude;
-  if (params.longitude != null) config.longitude = params.longitude;
+  if (geocoded) {
+    config.latitude = geocoded.latitude;
+    config.longitude = geocoded.longitude;
+    config.locationId = geocoded.locationId;
+  }
   if (params.radiusKm != null) config.radiusKm = params.radiusKm;
   if (params.minPrice != null) config.minPrice = params.minPrice;
+  if (params.maxPrice != null) config.maxPrice = params.maxPrice;
+  if (params.dateListedDays != null) config.dateListedDays = params.dateListedDays;
   return config;
 }
 

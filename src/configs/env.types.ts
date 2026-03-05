@@ -15,4 +15,6 @@ export const envSchema = z.object({
   SMTP_USER: z.string().min(1),
   SMTP_PASS: z.string().min(1),
   NOTIFICATION_EMAIL: z.email(),
+
+  GOOGLE_MAPS_API_KEY: z.string().min(1),
 });
