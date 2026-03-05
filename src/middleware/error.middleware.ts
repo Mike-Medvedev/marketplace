@@ -1,5 +1,6 @@
 import {
   EmailNotVerifiedError,
+  FacebookRateLimitError,
   FacebookSessionExpiredError,
   FetchListingDescriptionError,
   FetchListingPhotosError,
@@ -64,6 +65,11 @@ const errorHandler: ErrorRequestHandler = function (
   if (error instanceof SessionNotLoadedError) {
     logger.warn(error.message);
     sendError(res, 503, "SESSION_NOT_LOADED", error.message);
+    return;
+  }
+  if (error instanceof FacebookRateLimitError) {
+    logger.warn(`[rate-limit] Facebook error code ${error.facebookErrorCode}: ${error.message}`);
+    sendError(res, 429, "FACEBOOK_RATE_LIMITED", error.message);
     return;
   }
   if (error instanceof FacebookSessionExpiredError) {
