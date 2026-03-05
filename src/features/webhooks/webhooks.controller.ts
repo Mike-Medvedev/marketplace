@@ -12,8 +12,10 @@ export const WebhooksController = {
   },
 
   async handleNeedsLogin(req: Request, res: Response) {
+    logger.info("[needs-login] Webhook received");
     const { novncUrl } = req.body;
     if (!novncUrl) {
+      logger.warn("[needs-login] Request missing novncUrl");
       sendError(res, 400, "BAD_REQUEST", "Missing novncUrl");
       return;
     }
