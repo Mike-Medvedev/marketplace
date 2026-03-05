@@ -2,14 +2,13 @@ import {
   FacebookSessionExpiredError,
   FetchListingDescriptionError,
   FetchListingPhotosError,
-  NtfyError,
   SearchMarketPlaceError,
   SearchNotFoundError,
   SessionNotLoadedError,
-} from "@/errors/errors";
-import { sendError } from "@/api-response";
+} from "@/errors/errors.ts";
+import { sendError } from "@/utils/api-response.ts";
 import { APIError } from "openai";
-import logger from "@/logger/logger";
+import logger from "@/logger/logger.ts";
 import type { ErrorRequestHandler, Request, Response, NextFunction } from "express";
 
 const errorHandler: ErrorRequestHandler = function (
@@ -46,11 +45,6 @@ const errorHandler: ErrorRequestHandler = function (
   if (error instanceof FetchListingDescriptionError) {
     logger.error(error);
     sendError(res, 500, "FETCH_DESCRIPTION_ERROR", error.message);
-    return;
-  }
-  if (error instanceof NtfyError) {
-    logger.error(error);
-    sendError(res, 500, "NOTIFICATION_ERROR", error.message);
     return;
   }
   if (error instanceof APIError) {

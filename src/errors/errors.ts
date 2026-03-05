@@ -19,13 +19,6 @@ export class FetchListingDescriptionError extends Error {
   }
 }
 
-export class NtfyError extends Error {
-  constructor(message: string, error?: unknown) {
-    super(message, { cause: error instanceof Error ? error : undefined });
-    this.name = "NtfyError";
-  }
-}
-
 export class SessionNotLoadedError extends Error {
   constructor(message: string = "Facebook session not loaded. POST session data to /webhook/refresh first.") {
     super(message);
@@ -35,8 +28,8 @@ export class SessionNotLoadedError extends Error {
 
 /** Thrown when Facebook returns "Log in to continue" (e.g. error 1357001) — session expired or invalid. */
 export class FacebookSessionExpiredError extends Error {
-  public readonly facebookErrorCode?: number;
-  public readonly errorSummary?: string;
+  public readonly facebookErrorCode?: number | undefined;
+  public readonly errorSummary?: string | undefined;
   constructor(
     message: string = "Facebook session expired or invalid. Please refresh session via POST /webhook/refresh.",
     facebookErrorCode?: number,

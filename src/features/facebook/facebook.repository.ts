@@ -1,0 +1,24 @@
+import logger from "@/logger/logger.ts";
+import { read, write } from "@/infra/redis/redis.client.ts";
+import { SESSION_KEY } from "./facebook.constants.ts";
+import type { FacebookSession } from "./facebook.types.ts";
+
+/** Load the Facebook session from Redis. Returns null if none stored or Redis read fails. */
+export async function getSession(): Promise<FacebookSession | null> {
+  logger.info("=================GETTING SESSION========================");
+  try {
+    const raw = await read(SESSION_KEY);
+    if (!raw) return null;
+    const session = JSON.parse(raw) as FacebookSession;
+    logger.info(JSON.stringify(session));
+    return session;
+  } catch (err) {
+    logger.warn("[session-store] Failed to read session from Redis:", err);
+    return null;
+  }
+}
+
+/** Persist the Facebook session to Redis. Overwrites any existing session. */
+export async function setSession(session: FacebookSession): Promise<void> {
+  await write(SESSION_KEY, JSON.stringify(session), 86400); // TTL 86400 = 1 day
+}

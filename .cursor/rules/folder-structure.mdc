@@ -1,0 +1,64 @@
+---
+description: Project folder structure and feature-based architecture conventions
+alwaysApply: true
+---
+
+# Folder Structure
+
+```
+src/
+├── features/
+│   └── <feature>/                    # e.g. search/, books/, scrape/
+│       ├── <feature>.types.ts        # TypeScript types + Zod schemas/models
+│       ├── <feature>.service.ts      # Business logic only
+│       ├── <feature>.repository.ts   # DB, cache, and storage queries
+│       ├── <feature>.controller.ts   # Request handling: params, body, response — exports FeatureController object
+│       └── <feature>.routes.ts       # Express endpoints via TypedRouter
+├── infra/
+│   └── <service>/                    # e.g. redis/, mongo/
+│       ├── <service>.client.ts       # Client connection/setup
+│       └── <service>.service.ts      # Optional wrapper/helpers
+├── middleware/                        # Express middleware
+├── errors/
+│   └── errors.ts                     # Named error classes
+├── utils/                             # Shared utilities
+├── types/                             # Shared types, .d.ts files, declared namespaces
+├── configs/                           # Configuration files
+├── logger/
+│   └── logger.ts
+├── app.ts                             # Express app setup, middleware, route mounting
+└── server.ts                          # Server listen + graceful shutdown only
+```
+
+## Feature Modules
+
+Each feature folder is self-contained with consistent file naming:
+
+```typescript
+// features/books/books.routes.ts
+const BookRouter = TypedRouter(express.Router());
+
+BookRouter.get("/", {
+  request: GetBooksRequestSchema,
+  response: GetBooksResponseSchema,
+}, BookController.getBooks);
+```
+
+- **routes** → defines endpoints, delegates to controller
+- **controller** → exports a single named object (e.g. `BookController`), handles req/res lifecycle, calls service. Methods are passed directly to routes.
+- **service** → pure business logic, calls repository
+- **repository** → all persistence (DB queries, cache reads/writes)
+- **types** → Zod schemas and inferred TypeScript types for the feature
+
+## app.ts vs server.ts
+
+- `app.ts` — creates `const app = express()`, registers middleware, mounts routers, exports `app`
+- `server.ts` — imports `app`, calls `app.listen()`, handles `SIGTERM`/`SIGINT` shutdown
+
+## Infra
+
+Third-party integrations (Redis, Mongo, etc.) go in `src/infra/<name>/`. Keep client setup in `<name>.client.ts`. Add `<name>.service.ts` only if the integration needs shared helper logic.
+
+## Standalone Domains
+
+Any module with its own request logic, parsing, or external API integration (e.g. Facebook marketplace requests) should be extracted into its own feature folder following the same controller → service → repository pattern.

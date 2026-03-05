@@ -1,0 +1,67 @@
+---
+description: Error handling conventions — named errors, global middleware, and controller patterns
+alwaysApply: true
+---
+
+# Error Handling
+
+## Express 5 Async Error Handling
+
+Express 5 automatically catches errors thrown in async route handlers and forwards them to the global error middleware. Do NOT wrap handlers in try/catch or `.catch(next)` unless you need to catch a specific error and do something with it before re-throwing.
+
+```typescript
+// ❌ BAD — unnecessary try/catch
+async handleGetBook(req: Request, res: Response) {
+  try {
+    const book = await BookService.getById(req.params.id);
+    sendSuccess(res, book);
+  } catch (e) {
+    next(e);
+  }
+}
+
+// ✅ GOOD — let Express 5 catch it automatically
+async handleGetBook(req: Request, res: Response) {
+  const book = await BookService.getById(req.params.id);
+  if (!book) throw new BookNotFoundError(req.params.id);
+  sendSuccess(res, book);
+}
+```
+
+Only use try/catch when you need to handle a specific error locally (e.g. fallback logic, retries, partial error recovery).
+
+## Defining Named Errors
+
+All named errors live in `src/errors/errors.ts`. Extend `Error`, set `this.name`, and use `{ cause }` to preserve the original error.
+
+```typescript
+export class BookNotFoundError extends Error {
+  public readonly bookId: string;
+  constructor(id: string) {
+    super(`Book not found: ${id}`);
+    this.name = "BookNotFoundError";
+    this.bookId = id;
+  }
+}
+```
+
+## Global Error Middleware
+
+`src/middleware/error.middleware.ts` is the Express `ErrorRequestHandler` registered last via `app.use(errorHandler)`. For each named error, use `instanceof` to match, log appropriately, and call `sendError`.
+
+```typescript
+if (error instanceof BookNotFoundError) {
+  logger.warn(error.message);
+  sendError(res, 404, "BOOK_NOT_FOUND", error.message);
+  return;
+}
+```
+
+## Rules
+
+- Every new named error must be added to `src/errors/errors.ts`
+- Every new named error must get a corresponding `instanceof` branch in `error.middleware.ts`
+- Use `logger.warn` for 4xx (client errors) and `logger.error` for 5xx (server errors)
+- Use `sendError(res, status, "CODE", message)` from `src/utils/api-response.ts`
+- Controllers never catch-and-respond for domain errors — let them propagate to the global handler
+- No `.catch(next)` wrappers in route definitions — Express 5 handles this
