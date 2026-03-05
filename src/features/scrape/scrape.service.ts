@@ -145,7 +145,7 @@ function extractListingDetails(
     url: `https://www.facebook.com/marketplace/item/${listing.id}/`,
     price: listing.listing_price.amount,
     title: listing.marketplace_listing_title,
-    location: listing.location.reverse_geocode,
+    location: listing.location?.reverse_geocode ?? null,
     primaryPhotoUri: listing.primary_listing_photo.image.uri,
   };
 }
