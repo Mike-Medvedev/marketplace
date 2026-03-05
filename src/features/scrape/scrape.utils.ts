@@ -1,8 +1,24 @@
 import { SCRAPE_PARAM_KEYS, NUM_KEYS } from "./scrape.constants.ts";
-import type {
-  MarketplaceSearchConfig,
-  SearchMarketPlaceParams,
-} from "./scrape.types.ts";
+import type { MarketplaceSearchConfig, SearchMarketPlaceParams } from "./scrape.types.ts";
+
+export function parseScrapeBody(body: unknown): SearchMarketPlaceParams {
+  if (body == null || typeof body !== "object") return {};
+  const raw = body as Record<string, unknown>;
+  const params: SearchMarketPlaceParams = {};
+  for (const key of SCRAPE_PARAM_KEYS) {
+    const v = raw[key];
+    if (v === undefined) continue;
+    if (NUM_KEYS.includes(key as (typeof NUM_KEYS)[number])) {
+      const n = Number(v);
+      if (!Number.isNaN(n)) (params as Record<string, number>)[key] = n;
+    } else if (key === "cursor") {
+      params.cursor = v === null || v === "" ? null : String(v);
+    } else {
+      (params as Record<string, string>)[key] = String(v);
+    }
+  }
+  return params;
+}
 
 /** Extracts search config (query, location, price, radius) from full params. */
 export function pickSearchConfig(
@@ -25,23 +41,4 @@ export function delay(ms: number, jitterPercent = 20): Promise<void> {
   const max = ms + jitter;
   const actualMs = Math.max(0, min + Math.random() * (max - min));
   return new Promise((resolve) => setTimeout(resolve, actualMs));
-}
-
-export function parseScrapeBody(body: unknown): SearchMarketPlaceParams {
-  if (body == null || typeof body !== "object") return {};
-  const raw = body as Record<string, unknown>;
-  const params: SearchMarketPlaceParams = {};
-  for (const key of SCRAPE_PARAM_KEYS) {
-    const v = raw[key];
-    if (v === undefined) continue;
-    if (NUM_KEYS.includes(key as (typeof NUM_KEYS)[number])) {
-      const n = Number(v);
-      if (!Number.isNaN(n)) (params as Record<string, number>)[key] = n;
-    } else if (key === "cursor") {
-      params.cursor = v === null || v === "" ? null : String(v);
-    } else {
-      (params as Record<string, string>)[key] = String(v);
-    }
-  }
-  return params;
 }

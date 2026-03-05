@@ -12,6 +12,7 @@ webhookRouter.post(
   {
     operationId: "webhookAnalyzedListings",
     summary: "Receive analyzed listings from Roboflow",
+    skipValidation: true,
   },
   WebhooksController.handleAnalyzedListings,
 );
@@ -21,6 +22,7 @@ webhookRouter.post(
   {
     operationId: "webhookNeedsLogin",
     summary: "Playwright container signals that human login is required",
+    skipValidation: true,
   },
   WebhooksController.handleNeedsLogin,
 );
@@ -30,6 +32,7 @@ webhookRouter.post(
   {
     operationId: "webhookRefresh",
     summary: "Refresh Facebook session data",
+    skipValidation: true,
   },
   WebhooksController.handleRefresh,
 );
