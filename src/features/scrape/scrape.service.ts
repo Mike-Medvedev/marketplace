@@ -33,7 +33,7 @@ import logger from "@/logger/logger.ts";
  * @param [params={}] - Search options
  * @param [params.cursor] - Pagination cursor from previous response. Omit for first page.
  * @param [params.pageCount] - Fetch exactly this many pages.
- * @param [params.pageDelayMs=5000] - Delay in ms between pagination requests to avoid rate limiting.
+ * @param [params.pageDelayMs=2000] - Delay in ms between pagination requests to avoid rate limiting.
  * @param [params.listingFetchDelayMs=1500] - Delay in ms between each listing's photo+description fetch.
  * @param [params.query] - Search query (default "vintage guitars").
  * @param [params.location] - City/state to geocode (e.g. "Stamford, CT"). Falls back to Sacramento.
