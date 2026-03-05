@@ -12,7 +12,7 @@ export interface MarketplaceListing {
   description: string;
 }
 
-/** Search filters for Marketplace (query, location, price, radius). */
+/** Search filters for Marketplace (query, location, price, radius, recency). */
 export interface MarketplaceSearchConfig {
   /** Search query (e.g. "vintage guitars"). Default "vintage guitars". */
   query?: string;
@@ -26,9 +26,25 @@ export interface MarketplaceSearchConfig {
   radiusKm?: number;
   /** Minimum price filter. Default 0. */
   minPrice?: number;
+  /** Maximum price filter in cents. Omit or null for no upper limit. */
+  maxPrice?: number;
+  /** Only show listings created within the last N days (1, 7, or 30). Omit for all listings. */
+  dateListedDays?: 1 | 7 | 30;
 }
 
-export interface SearchMarketPlaceParams extends MarketplaceSearchConfig {
+export interface SearchMarketPlaceParams {
+  /** City/state string for geocoding (e.g. "Stamford, CT"). Resolved to lat/lng on the backend. */
+  location?: string;
+  /** Search query (e.g. "vintage guitars"). */
+  query?: string;
+  /** Search radius in km. Default 805 (~500 miles). Max 805. */
+  radiusKm?: number;
+  /** Minimum price filter. Default 0. */
+  minPrice?: number;
+  /** Maximum price filter in cents. Omit or null for no upper limit. */
+  maxPrice?: number;
+  /** Only show listings created within the last N days (1, 7, or 30). Omit for all listings. */
+  dateListedDays?: 1 | 7 | 30;
   /** Pagination cursor from previous response. Omit for first page. */
   cursor?: string | null;
   /** Fetch exactly this many pages (e.g. 5 for page1..page5). */
@@ -37,6 +53,8 @@ export interface SearchMarketPlaceParams extends MarketplaceSearchConfig {
   pageDelayMs?: number;
   /** Delay in ms between each listing's photo+description fetch to avoid rate limiting (default 1500). */
   listingFetchDelayMs?: number;
+  /** How often to repeat this search (e.g. "every_30m", "every_1h", "every_6h", "every_24h"). */
+  searchFrequency?: string;
 }
 
 export interface SearchMarketPlaceResult {
@@ -61,14 +79,15 @@ export interface RawListing {
 export const searchMarketPlaceParamsSchema = z
   .object({
     query: z.string().optional(),
-    locationId: z.string().optional(),
-    latitude: z.coerce.number().optional(),
-    longitude: z.coerce.number().optional(),
+    location: z.string().optional(),
     radiusKm: z.coerce.number().optional(),
     minPrice: z.coerce.number().optional(),
+    maxPrice: z.coerce.number().optional(),
+    dateListedDays: z.coerce.number().pipe(z.union([z.literal(1), z.literal(7), z.literal(30)])).optional(),
     pageCount: z.coerce.number().optional(),
     pageDelayMs: z.coerce.number().optional(),
     listingFetchDelayMs: z.coerce.number().optional(),
+    searchFrequency: z.string().optional(),
   })
   .optional()
   .default({});

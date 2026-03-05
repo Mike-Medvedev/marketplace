@@ -26,6 +26,7 @@ import {
   FetchListingPhotosError,
   SearchMarketPlaceError,
 } from "@/errors/errors.ts";
+import { geocodeCity } from "@/infra/google/google.client.ts";
 import logger from "@/logger/logger.ts";
 
 /** Performs a Marketplace search.
@@ -35,9 +36,12 @@ import logger from "@/logger/logger.ts";
  * @param [params.pageDelayMs=5000] - Delay in ms between pagination requests to avoid rate limiting.
  * @param [params.listingFetchDelayMs=1500] - Delay in ms between each listing's photo+description fetch.
  * @param [params.query] - Search query (default "vintage guitars").
- * @param [params.locationId] - Facebook location slug (default "sac").
+ * @param [params.location] - City/state to geocode (e.g. "Stamford, CT"). Falls back to Sacramento.
  * @param [params.minPrice] - Minimum price filter (default 0).
+ * @param [params.maxPrice] - Maximum price filter. Omit for no upper limit.
+ * @param [params.dateListedDays] - Only listings from the last 1, 7, or 30 days. Omit for all.
  * @param [params.radiusKm] - Search radius in km, max 805 (~500 miles).
+ * @param [params.searchFrequency] - How often to repeat this search (e.g. "every_30m").
  */
 export async function searchMarketPlace(
   params: SearchMarketPlaceParams = {},
@@ -49,7 +53,8 @@ export async function searchMarketPlace(
     listingFetchDelayMs = DEFAULT_LISTING_FETCH_DELAY_MS,
   } = params;
 
-  const searchConfig = pickSearchConfig(params);
+  const geocoded = params.location ? await geocodeCity(params.location) : undefined;
+  const searchConfig = pickSearchConfig(params, geocoded);
 
   if (pageCount == null || pageCount <= 1) {
     logger.info(

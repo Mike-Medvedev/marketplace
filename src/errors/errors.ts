@@ -42,6 +42,15 @@ export class FacebookSessionExpiredError extends Error {
   }
 }
 
+export class GeocodingError extends Error {
+  public readonly location: string;
+  constructor(location: string, detail?: string) {
+    super(`Could not resolve location: "${location}"${detail ? ` — ${detail}` : ""}`);
+    this.name = "GeocodingError";
+    this.location = location;
+  }
+}
+
 export class SearchNotFoundError extends Error {
   public readonly searchId: string;
   constructor(id: string) {

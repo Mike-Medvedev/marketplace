@@ -2,6 +2,7 @@ import {
   FacebookSessionExpiredError,
   FetchListingDescriptionError,
   FetchListingPhotosError,
+  GeocodingError,
   SearchMarketPlaceError,
   SearchNotFoundError,
   SessionNotLoadedError,
@@ -18,6 +19,11 @@ const errorHandler: ErrorRequestHandler = function (
   res: Response,
   _next: NextFunction,
 ) {
+  if (error instanceof GeocodingError) {
+    logger.warn(error.message);
+    sendError(res, 400, "GEOCODING_ERROR", error.message);
+    return;
+  }
   if (error instanceof SearchNotFoundError) {
     logger.warn(error.message);
     sendError(res, 404, "NOT_FOUND", error.message);

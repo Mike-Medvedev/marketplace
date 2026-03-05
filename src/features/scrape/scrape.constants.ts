@@ -14,26 +14,29 @@ export const DEFAULT_SEARCH_CONFIG = {
   longitude: -121.4947,
   radiusKm: MAX_RADIUS_KM,
   minPrice: 0,
+  maxPrice: null,
+  dateListedDays: null,
 } as const;
 
 export const SCRAPE_PARAM_KEYS: (keyof SearchMarketPlaceParams)[] = [
   "query",
-  "locationId",
-  "latitude",
-  "longitude",
+  "location",
   "radiusKm",
   "minPrice",
+  "maxPrice",
+  "dateListedDays",
   "cursor",
   "pageCount",
   "pageDelayMs",
   "listingFetchDelayMs",
+  "searchFrequency",
 ];
 
 export const NUM_KEYS = [
-  "latitude",
-  "longitude",
   "radiusKm",
   "minPrice",
+  "maxPrice",
+  "dateListedDays",
   "pageCount",
   "pageDelayMs",
   "listingFetchDelayMs",
