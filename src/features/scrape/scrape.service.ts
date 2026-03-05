@@ -101,10 +101,11 @@ async function fetchOnePage(
   const requestConfig = await marketplaceSearchRequestConfig(cursor, searchConfig);
   const response = await fetch(FB_GRAPHQL_URL, requestConfig);
 
-  logger.info(`[fetchOnePage] Facebook responded with status ${response.status}`);
   if (!response.ok) {
     const errorBody = await response.text().catch(() => "(could not read body)");
-    logger.error(`[fetchOnePage] Non-OK response body (first 500 chars): ${errorBody.slice(0, 500)}`);
+    logger.error(
+      `[fetchOnePage] Non-OK response body (first 500 chars): ${errorBody.slice(0, 500)}`,
+    );
     throw new SearchMarketPlaceError(
       `Search request failed: ${response.status} ${response.statusText}`,
     );
@@ -129,11 +130,15 @@ async function fetchOnePage(
   const fbErrors = (json as { errors?: { message: string; code: number }[] }).errors;
   if (fbErrors?.length) {
     const first = fbErrors[0]!;
-    logger.error(`[fetchOnePage] Facebook GraphQL error: code=${first.code}, message="${first.message}"`);
+    logger.error(
+      `[fetchOnePage] Facebook GraphQL error: code=${first.code}, message="${first.message}"`,
+    );
     if (first.code === 1675004) {
       throw new FacebookRateLimitError(first.code);
     }
-    throw new SearchMarketPlaceError(`Facebook GraphQL error (code ${first.code}): ${first.message}`);
+    throw new SearchMarketPlaceError(
+      `Facebook GraphQL error (code ${first.code}): ${first.message}`,
+    );
   }
 
   const fbResponse = json as { error?: number; errorSummary?: string; errorDescription?: string };
