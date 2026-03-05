@@ -5,8 +5,8 @@ export interface MarketplaceListing {
   url: string;
   price: string;
   title: string;
-  /** Facebook reverse_geocode object (e.g. { city, state, city_page }). */
-  location: Record<string, unknown>;
+  /** Facebook reverse_geocode object (e.g. { city, state, city_page }). Null when seller did not set location. */
+  location: Record<string, unknown> | null;
   primaryPhotoUri: string;
   photos: { uri: string }[];
   description: string;
@@ -92,13 +92,13 @@ export const searchMarketPlaceParamsSchema = z
   .optional()
   .default({});
 
-/** Listing shape returned by search (no photos/description). */
+/** Listing shape returned by search (no photos/description). Facebook may return location: null for some listings. */
 const scrapeListingSchema = z.object({
   id: z.string(),
   url: z.string(),
   price: z.string(),
   title: z.string(),
-  location: z.record(z.string(), z.unknown()),
+  location: z.record(z.string(), z.unknown()).nullable(),
   primaryPhotoUri: z.string(),
 });
 
