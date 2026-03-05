@@ -53,13 +53,20 @@ export async function searchMarketPlace(
     listingFetchDelayMs = DEFAULT_LISTING_FETCH_DELAY_MS,
   } = params;
 
+  logger.info(
+    `[searchMarketPlace] Starting search — query="${params.query}", location="${params.location}", minPrice=${params.minPrice}, maxPrice=${params.maxPrice}, dateListedDays=${params.dateListedDays}, pageCount=${pageCount}`,
+  );
+
   const geocoded = params.location ? await geocodeCity(params.location) : undefined;
+  if (geocoded) {
+    logger.info(
+      `[searchMarketPlace] Geocoded "${params.location}" -> lat=${geocoded.latitude}, lng=${geocoded.longitude}, slug="${geocoded.locationId}"`,
+    );
+  }
   const searchConfig = pickSearchConfig(params, geocoded);
 
   if (pageCount == null || pageCount <= 1) {
-    logger.info(
-      `Page count set to 1, fetching a single page with delay of ${listingFetchDelayMs}ms...`,
-    );
+    logger.info(`[searchMarketPlace] Fetching single page...`);
     return fetchOnePage(cursor, listingFetchDelayMs, searchConfig);
   }
 
@@ -91,12 +98,14 @@ async function fetchOnePage(
   listingFetchDelayMs: number = DEFAULT_LISTING_FETCH_DELAY_MS,
   searchConfig?: Partial<MarketplaceSearchConfig>,
 ): Promise<SearchMarketPlaceResult> {
-  const response = await fetch(
-    FB_GRAPHQL_URL,
-    await marketplaceSearchRequestConfig(cursor, searchConfig),
-  );
+  logger.info(`[fetchOnePage] Requesting Facebook GraphQL (cursor=${cursor ? "yes" : "none"})`);
+  const requestConfig = await marketplaceSearchRequestConfig(cursor, searchConfig);
+  const response = await fetch(FB_GRAPHQL_URL, requestConfig);
 
+  logger.info(`[fetchOnePage] Facebook responded with status ${response.status}`);
   if (!response.ok) {
+    const errorBody = await response.text().catch(() => "(could not read body)");
+    logger.error(`[fetchOnePage] Non-OK response body (first 500 chars): ${errorBody.slice(0, 500)}`);
     throw new SearchMarketPlaceError(
       `Search request failed: ${response.status} ${response.statusText}`,
     );
@@ -122,16 +131,39 @@ async function fetchOnePage(
   if (fbResponse.error != null) {
     const msg =
       fbResponse.errorDescription ?? fbResponse.errorSummary ?? "Facebook returned an error.";
+    logger.error(`[fetchOnePage] Facebook error ${fbResponse.error}: ${msg}`);
     throw new FacebookSessionExpiredError(msg, fbResponse.error, fbResponse.errorSummary);
   }
-  const feedUnits = json.data?.marketplace_search?.feed_units;
-  if (!feedUnits?.edges) {
+
+  if (!json.data) {
+    logger.error(
+      `[fetchOnePage] Facebook response has no "data" field. First 1000 chars: ${JSON.stringify(json).slice(0, 1000)}`,
+    );
+    throw new SearchMarketPlaceError(
+      "Facebook returned an unexpected response (no data field). Session may be expired.",
+    );
+  }
+
+  if (!json.data.marketplace_search) {
+    logger.error(
+      `[fetchOnePage] Facebook response missing "marketplace_search". Keys: ${Object.keys(json.data).join(", ")}. First 1000 chars: ${JSON.stringify(json.data).slice(0, 1000)}`,
+    );
+    throw new SearchMarketPlaceError(
+      "Facebook returned an unexpected response (no marketplace_search). Session may be expired or request was malformed.",
+    );
+  }
+
+  const feedUnits = json.data.marketplace_search.feed_units;
+  if (!feedUnits?.edges || feedUnits.edges.length === 0) {
+    logger.warn(
+      `[fetchOnePage] Facebook returned 0 listings. feed_units present: ${!!feedUnits}, edges present: ${!!feedUnits?.edges}, edges length: ${feedUnits?.edges?.length ?? 0}`,
+    );
     return { listings: [], nextCursor: null };
   }
-  logger.info(`------fetched ${feedUnits.edges.length} listings from marketplace`);
+
+  logger.info(`[fetchOnePage] Fetched ${feedUnits.edges.length} listings from marketplace`);
   const rawListings = feedUnits.edges.map((edge) => edge.node.listing);
   const listings = rawListings.map(extractListingDetails);
-  // const listings = await addPhotosAndDescriptions(rawListings, listingFetchDelayMs);
   const nextCursor = feedUnits.page_info?.end_cursor ?? null;
 
   return { listings, nextCursor };
