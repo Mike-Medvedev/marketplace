@@ -42,6 +42,15 @@ export class FacebookSessionExpiredError extends Error {
   }
 }
 
+export class FacebookRateLimitError extends Error {
+  public readonly facebookErrorCode: number;
+  constructor(code: number = 1675004) {
+    super("Facebook rate limit exceeded. Try again later.");
+    this.name = "FacebookRateLimitError";
+    this.facebookErrorCode = code;
+  }
+}
+
 export class GeocodingError extends Error {
   public readonly location: string;
   constructor(location: string, detail?: string) {

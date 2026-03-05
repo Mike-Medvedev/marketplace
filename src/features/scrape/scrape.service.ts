@@ -19,6 +19,7 @@ import {
   DEFAULT_PAGE_DELAY_MS,
 } from "./scrape.constants.ts";
 import {
+  FacebookRateLimitError,
   FacebookSessionExpiredError,
   FetchListingDescriptionError,
   FetchListingPhotosError,
@@ -125,6 +126,16 @@ async function fetchOnePage(
     );
     throw error;
   }
+  const fbErrors = (json as { errors?: { message: string; code: number }[] }).errors;
+  if (fbErrors?.length) {
+    const first = fbErrors[0]!;
+    logger.error(`[fetchOnePage] Facebook GraphQL error: code=${first.code}, message="${first.message}"`);
+    if (first.code === 1675004) {
+      throw new FacebookRateLimitError(first.code);
+    }
+    throw new SearchMarketPlaceError(`Facebook GraphQL error (code ${first.code}): ${first.message}`);
+  }
+
   const fbResponse = json as { error?: number; errorSummary?: string; errorDescription?: string };
   if (fbResponse.error != null) {
     const msg =
