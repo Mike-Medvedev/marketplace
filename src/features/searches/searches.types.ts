@@ -29,12 +29,17 @@ export const monitoringSettingsSchema = z.object({
   notificationTarget: z.string().min(1),
 });
 
-export const activeSearchSchema = z.object({
+export const storedSearchSchema = z.object({
   id: z.uuid(),
   criteria: searchCriteriaSchema,
   settings: monitoringSettingsSchema,
   status: searchStatusSchema,
   lastRun: z.iso.datetime().nullable(),
+});
+
+export const activeSearchSchema = storedSearchSchema.extend({
+  isScheduled: z.boolean(),
+  nextRunAt: z.iso.datetime().nullable(),
 });
 
 export const createSearchBodySchema = z.object({
@@ -53,6 +58,7 @@ export const searchIdParamsSchema = z.object({
 
 export type SearchFrequency = z.infer<typeof searchFrequencySchema>;
 export type NotificationMethod = z.infer<typeof notificationMethodSchema>;
+export type StoredSearch = z.infer<typeof storedSearchSchema>;
 export type ActiveSearch = z.infer<typeof activeSearchSchema>;
 export type CreateSearchBody = z.infer<typeof createSearchBodySchema>;
 export type UpdateSearchBody = z.infer<typeof updateSearchBodySchema>;

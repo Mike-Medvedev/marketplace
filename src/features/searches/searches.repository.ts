@@ -1,13 +1,13 @@
 import { redis } from "@/infra/redis/redis.client.ts";
 import { randomUUID } from "node:crypto";
 import { KEY_PREFIX, INDEX_KEY } from "./searches.constants.ts";
-import type { ActiveSearch, CreateSearchBody, UpdateSearchBody } from "./searches.types.ts";
+import type { StoredSearch, CreateSearchBody, UpdateSearchBody } from "./searches.types.ts";
 
 function searchKey(id: string): string {
   return `${KEY_PREFIX}${id}`;
 }
 
-export async function getAllSearches(): Promise<ActiveSearch[]> {
+export async function getAllSearches(): Promise<StoredSearch[]> {
   const ids = await redis.smembers(INDEX_KEY);
   if (ids.length === 0) return [];
 
@@ -16,7 +16,7 @@ export async function getAllSearches(): Promise<ActiveSearch[]> {
   const results = await pipeline.exec();
   if (!results) return [];
 
-  const searches: ActiveSearch[] = [];
+  const searches: StoredSearch[] = [];
   for (const [err, val] of results) {
     if (!err && typeof val === "string") {
       searches.push(JSON.parse(val));
@@ -25,13 +25,13 @@ export async function getAllSearches(): Promise<ActiveSearch[]> {
   return searches;
 }
 
-export async function getSearchById(id: string): Promise<ActiveSearch | null> {
+export async function getSearchById(id: string): Promise<StoredSearch | null> {
   const raw = await redis.get(searchKey(id));
   return raw ? JSON.parse(raw) : null;
 }
 
-export async function createSearch(body: CreateSearchBody): Promise<ActiveSearch> {
-  const search: ActiveSearch = {
+export async function createSearch(body: CreateSearchBody): Promise<StoredSearch> {
+  const search: StoredSearch = {
     id: randomUUID(),
     criteria: body.criteria,
     settings: body.settings,
@@ -51,11 +51,11 @@ export async function createSearch(body: CreateSearchBody): Promise<ActiveSearch
 export async function updateSearch(
   id: string,
   body: UpdateSearchBody,
-): Promise<ActiveSearch | null> {
+): Promise<StoredSearch | null> {
   const existing = await getSearchById(id);
   if (!existing) return null;
 
-  const updated: ActiveSearch = {
+  const updated: StoredSearch = {
     ...existing,
     criteria: body.criteria,
     settings: body.settings,
@@ -81,7 +81,7 @@ export async function deleteSearch(id: string): Promise<boolean> {
 export async function updateLastRun(id: string, isoTimestamp: string): Promise<void> {
   const existing = await getSearchById(id);
   if (!existing) return;
-  const updated: ActiveSearch = { ...existing, lastRun: isoTimestamp };
+  const updated: StoredSearch = { ...existing, lastRun: isoTimestamp };
   await redis.set(searchKey(id), JSON.stringify(updated));
 }
 
@@ -92,7 +92,7 @@ export async function pauseAllSearches(): Promise<number> {
 
   const pipeline = redis.pipeline();
   for (const search of running) {
-    const updated: ActiveSearch = { ...search, status: "needs_attention" };
+    const updated: StoredSearch = { ...search, status: "needs_attention" };
     pipeline.set(searchKey(search.id), JSON.stringify(updated));
   }
   await pipeline.exec();
@@ -106,7 +106,7 @@ export async function resumeAllSearches(): Promise<number> {
 
   const pipeline = redis.pipeline();
   for (const search of paused) {
-    const updated: ActiveSearch = { ...search, status: "running" };
+    const updated: StoredSearch = { ...search, status: "running" };
     pipeline.set(searchKey(search.id), JSON.stringify(updated));
   }
   await pipeline.exec();

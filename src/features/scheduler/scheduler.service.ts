@@ -3,11 +3,12 @@ import type { SearchMarketPlaceParams } from "@/features/scrape/scrape.types.ts"
 import { write } from "@/infra/redis/redis.client.ts";
 import { notify } from "@/infra/notifications/notification.service.ts";
 import * as repository from "@/features/searches/searches.repository.ts";
-import type { ActiveSearch } from "@/features/searches/searches.types.ts";
+import type { StoredSearch } from "@/features/searches/searches.types.ts";
 import { FREQUENCY_MS, RESULTS_TTL_SECONDS } from "./scheduler.constants.ts";
 import logger from "@/logger/logger.ts";
 
 const timers = new Map<string, ReturnType<typeof setInterval>>();
+const scheduledAt = new Map<string, number>();
 
 const DATE_LISTED_TO_DAYS: Record<string, 1 | 7 | 30> = {
   "24h": 1,
@@ -15,7 +16,7 @@ const DATE_LISTED_TO_DAYS: Record<string, 1 | 7 | 30> = {
   "30d": 30,
 };
 
-function criteriaToScrapeParams(search: ActiveSearch): SearchMarketPlaceParams {
+function criteriaToScrapeParams(search: StoredSearch): SearchMarketPlaceParams {
   const { criteria, settings } = search;
   const params: SearchMarketPlaceParams = {
     query: criteria.query,
@@ -35,7 +36,7 @@ function resultsKey(searchId: string): string {
   return `search:${searchId}:results`;
 }
 
-async function executeTick(search: ActiveSearch): Promise<void> {
+async function executeTick(search: StoredSearch): Promise<void> {
   try {
     const params = criteriaToScrapeParams(search);
     logger.info(`[scheduler] Running search "${search.criteria.query}" (${search.id})`);
@@ -63,7 +64,7 @@ async function executeTick(search: ActiveSearch): Promise<void> {
   }
 }
 
-export function scheduleSearch(search: ActiveSearch): void {
+export function scheduleSearch(search: StoredSearch): void {
   if (timers.has(search.id)) {
     cancelSearch(search.id);
   }
@@ -93,6 +94,7 @@ export function scheduleSearch(search: ActiveSearch): void {
   }, intervalMs);
 
   timers.set(search.id, timer);
+  scheduledAt.set(search.id, Date.now());
 }
 
 export function cancelSearch(searchId: string): void {
@@ -100,15 +102,30 @@ export function cancelSearch(searchId: string): void {
   if (timer) {
     clearInterval(timer);
     timers.delete(searchId);
+    scheduledAt.delete(searchId);
     logger.info(`[scheduler] Cancelled schedule for ${searchId}`);
   }
 }
 
-export function rescheduleSearch(search: ActiveSearch): void {
+export function rescheduleSearch(search: StoredSearch): void {
   cancelSearch(search.id);
   if (search.status === "running") {
     scheduleSearch(search);
   }
+}
+
+export function isScheduled(searchId: string): boolean {
+  return timers.has(searchId);
+}
+
+export function getNextRunAt(searchId: string, frequency: string): string | null {
+  const startedAt = scheduledAt.get(searchId);
+  if (!startedAt) return null;
+  const intervalMs = FREQUENCY_MS[frequency as keyof typeof FREQUENCY_MS];
+  if (!intervalMs) return null;
+  const elapsed = Date.now() - startedAt;
+  const remaining = intervalMs - (elapsed % intervalMs);
+  return new Date(Date.now() + remaining).toISOString();
 }
 
 export function cancelAll(): void {
@@ -117,13 +134,6 @@ export function cancelAll(): void {
     logger.info(`[scheduler] Cancelled schedule for ${id}`);
   }
   timers.clear();
+  scheduledAt.clear();
 }
 
-export async function restoreSchedules(): Promise<void> {
-  const searches = await repository.getAllSearches();
-  const running = searches.filter((s) => s.status === "running");
-  logger.info(`[scheduler] Restoring ${running.length} scheduled search(es)`);
-  for (const search of running) {
-    scheduleSearch(search);
-  }
-}

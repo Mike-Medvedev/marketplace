@@ -2,13 +2,10 @@ import { app } from "./app.ts";
 import { env } from "@/configs/env.ts";
 import { redis } from "@/infra/redis/redis.client.ts";
 import { disconnectSubscriber } from "@/infra/redis/redis.pubsub.ts";
-import { restoreSchedules, cancelAll } from "@/features/scheduler/scheduler.service.ts";
+import { cancelAll } from "@/features/scheduler/scheduler.service.ts";
 
 const server = app.listen(env.PORT, () => {
   console.log(`Server listening on port ${env.PORT}`);
-  restoreSchedules().catch((err) =>
-    console.error("[startup] Failed to restore scheduled searches:", err),
-  );
 });
 
 let isShuttingDown = false;
