@@ -5,7 +5,7 @@ import { notify } from "@/infra/notifications/notification.service.ts";
 import * as repository from "@/features/searches/searches.repository.ts";
 import type { StoredSearch } from "@/features/searches/searches.types.ts";
 import { FREQUENCY_MS, RESULTS_TTL_SECONDS } from "./scheduler.constants.ts";
-import logger from "@/logger/logger.ts";
+import logger from "@/infra/logger/logger.ts";
 
 const timers = new Map<string, ReturnType<typeof setInterval>>();
 const scheduledAt = new Map<string, number>();

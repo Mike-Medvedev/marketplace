@@ -1,7 +1,7 @@
 import { searchMarketPlace } from "./scrape.service.ts";
 import { parseScrapeBody } from "./scrape.utils.ts";
-import { sendSuccess } from "@/utils/api-response.ts";
-import logger from "@/logger/logger.ts";
+import { sendSuccess } from "@/shared/api-response.ts";
+import logger from "@/infra/logger/logger.ts";
 import type { Request, Response } from "express";
 
 export const ScrapeController = {

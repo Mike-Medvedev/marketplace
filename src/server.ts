@@ -4,7 +4,7 @@ import { redis } from "@/infra/redis/redis.client.ts";
 import { disconnectSubscriber } from "@/infra/redis/redis.pubsub.ts";
 import { cancelAll } from "@/features/scheduler/scheduler.service.ts";
 import { client as db } from "@/infra/db/db.ts";
-import logger from "@/logger/logger.ts";
+import logger from "@/infra/logger/logger.ts";
 
 const server = app.listen(env.PORT, () => {
   logger.info(`Server listening on port ${env.PORT}`);

@@ -1,5 +1,5 @@
-import { SessionNotLoadedError } from "@/errors/errors.ts";
-import logger from "@/logger/logger.ts";
+import { SessionNotLoadedError } from "@/shared/errors/errors.ts";
+import logger from "@/infra/logger/logger.ts";
 import { getSession } from "./facebook.repository.ts";
 import {
   FIXED_HEADERS,

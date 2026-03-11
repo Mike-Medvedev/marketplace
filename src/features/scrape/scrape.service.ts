@@ -24,9 +24,9 @@ import {
   FetchListingDescriptionError,
   FetchListingPhotosError,
   SearchMarketPlaceError,
-} from "@/errors/errors.ts";
+} from "@/shared/errors/errors.ts";
 import { geocodeCity } from "@/infra/google/google.client.ts";
-import logger from "@/logger/logger.ts";
+import logger from "@/infra/logger/logger.ts";
 
 /** Performs a Marketplace search.
  * @param [params={}] - Search options

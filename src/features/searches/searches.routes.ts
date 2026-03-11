@@ -1,7 +1,7 @@
 import express from "express";
 import { TypedRouter } from "meebo";
 import { z } from "zod";
-import { successResponse, errorResponse } from "@/utils/api-response.ts";
+import { successResponse, errorResponse } from "@/shared/api-response.ts";
 import {
   activeSearchSchema,
   createSearchBodySchema,

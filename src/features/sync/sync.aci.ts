@@ -2,7 +2,7 @@ import { ContainerInstanceManagementClient } from "@azure/arm-containerinstance"
 import { DefaultAzureCredential } from "@azure/identity";
 import { env } from "@/configs/env.ts";
 import { ACI_POLL_INTERVAL_MS } from "./sync.constants.ts";
-import logger from "@/logger/logger.ts";
+import logger from "@/infra/logger/logger.ts";
 
 const credential = new DefaultAzureCredential();
 const client = new ContainerInstanceManagementClient(credential, env.AZURE_SUBSCRIPTION_ID);

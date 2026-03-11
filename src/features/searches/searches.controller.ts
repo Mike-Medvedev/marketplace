@@ -1,6 +1,6 @@
-import logger from "@/logger/logger.ts";
-import { SearchNotFoundError } from "@/errors/errors.ts";
-import { sendSuccess } from "@/utils/api-response.ts";
+import logger from "@/infra/logger/logger.ts";
+import { SearchNotFoundError } from "@/shared/errors/errors.ts";
+import { sendSuccess } from "@/shared/api-response.ts";
 import * as service from "./searches.service.ts";
 import type { IdParams } from "./searches.types.ts";
 import type { Request, Response } from "express";
