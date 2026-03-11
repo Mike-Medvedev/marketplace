@@ -1,6 +1,6 @@
 import { db } from "@/infra/db/db.ts";
-import { searches } from "@/infra/db/schema.ts";
-import { eq, and } from "drizzle-orm";
+import { searches, searchRuns } from "@/infra/db/schema.ts";
+import { eq, and, desc } from "drizzle-orm";
 import type { StoredSearch, CreateSearchBody, UpdateSearchBody } from "./searches.types.ts";
 
 export async function getAllSearches(userId: string): Promise<StoredSearch[]> {
@@ -78,4 +78,26 @@ export async function resumeAllSearches(userId?: string): Promise<number> {
     .returning({ id: searches.id });
 
   return updated.length;
+}
+
+export async function getRunsBySearchId(searchId: string) {
+  return db
+    .select({
+      id: searchRuns.id,
+      searchId: searchRuns.searchId,
+      listingCount: searchRuns.listingCount,
+      executedAt: searchRuns.executedAt,
+    })
+    .from(searchRuns)
+    .where(eq(searchRuns.searchId, searchId))
+    .orderBy(desc(searchRuns.executedAt));
+}
+
+export async function getRunById(runId: string, searchId: string) {
+  const [run] = await db
+    .select()
+    .from(searchRuns)
+    .where(and(eq(searchRuns.id, runId), eq(searchRuns.searchId, searchId)))
+    .limit(1);
+  return run ?? null;
 }
