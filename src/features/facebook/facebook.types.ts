@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { createSelectSchema } from "drizzle-orm/zod";
+import { createSelectSchema } from "drizzle-zod";
 import { facebookSessions } from "@/infra/db/schema.ts";
 
 export const facebookSessionSchema = createSelectSchema(facebookSessions);

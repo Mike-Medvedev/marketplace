@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { createSelectSchema, createInsertSchema, createUpdateSchema } from "drizzle-orm/zod";
+import { createSelectSchema, createInsertSchema, createUpdateSchema } from "drizzle-zod";
 import {
   searches,
   searchStatusEnum,
