@@ -17,4 +17,5 @@ export const envSchema = z.object({
 
   GOOGLE_MAPS_API_KEY: z.string().min(1),
   BASE_URL: z.string().min(1),
+  DATABASE_URL: z.string().min(1),
 });
