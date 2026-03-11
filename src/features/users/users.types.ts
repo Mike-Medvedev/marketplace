@@ -1,5 +1,6 @@
 import { z } from "zod";
-import { createSelectSchema, createUpdateSchema } from "drizzle-orm/zod";
+import { createSelectSchema, createUpdateSchema } from "drizzle-zod";
+
 import { users } from "@/infra/db/schema.ts";
 
 export const userSelectSchema = createSelectSchema(users);

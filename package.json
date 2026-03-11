@@ -33,6 +33,7 @@
     "cors": "^2.8.6",
     "dotenv": "^17.3.1",
     "drizzle-orm": "^0.45.1",
+    "drizzle-zod": "^0.8.3",
     "express": "^5.2.1",
     "ioredis": "^5.9.3",
     "meebo": "^0.7.0",
