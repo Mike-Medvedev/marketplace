@@ -1,8 +1,13 @@
-import { integer, pgTable, varchar } from "drizzle-orm/pg-core";
+import { timestamp, pgTable, varchar, uuid, text, boolean } from "drizzle-orm/pg-core";
 
-export const usersTable = pgTable("users", {
-  id: integer().primaryKey().generatedAlwaysAsIdentity(),
-  name: varchar({ length: 255 }).notNull(),
-  age: integer().notNull(),
-  email: varchar({ length: 255 }).notNull().unique(),
+export const users = pgTable("users", {
+  id: uuid().primaryKey(), // UUID from Supabase Auth - no default, you provide it
+  firstName: varchar("first_name"),
+  lastName: varchar("last_name"),
+  phone: varchar("phone").unique(),
+  email: text().unique(),
+  stripeCustomerId: text("stripe_customer_id"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  isPremium: boolean("is_premium").default(false),
 });

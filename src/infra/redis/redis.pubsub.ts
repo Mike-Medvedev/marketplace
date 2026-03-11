@@ -35,20 +35,20 @@ export function subscribeSyncEvents(handler: SyncEventHandler): () => void {
     try {
       const event = JSON.parse(message) as SyncEvent;
       handler(event);
-    } catch (err) {
-      logger.error("[pubsub] Failed to parse sync event:", err);
+    } catch (error) {
+      logger.error("[pubsub] Failed to parse sync event:", error);
     }
   };
 
-  subscriber.subscribe(SYNC_CHANNEL).catch((err) => {
-    logger.error("[pubsub] Failed to subscribe:", err);
+  subscriber.subscribe(SYNC_CHANNEL).catch((error) => {
+    logger.error("[pubsub] Failed to subscribe:", error);
   });
   subscriber.on("message", messageHandler);
 
   return () => {
     subscriber.off("message", messageHandler);
-    subscriber.unsubscribe(SYNC_CHANNEL).catch((err) => {
-      logger.error("[pubsub] Failed to unsubscribe:", err);
+    subscriber.unsubscribe(SYNC_CHANNEL).catch((error) => {
+      logger.error("[pubsub] Failed to unsubscribe:", error);
     });
   };
 }

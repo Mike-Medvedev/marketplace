@@ -1,5 +1,4 @@
 import { randomUUID } from "crypto";
-import bcrypt from "bcryptjs";
 import { AuthRepository } from "./auth.repository.ts";
 import { sendVerificationEmail } from "@/infra/email/email.client.ts";
 import {
@@ -16,7 +15,7 @@ export const AuthService = {
     const existing = await AuthRepository.getUser(email);
     if (existing) throw new UserAlreadyExistsError(email);
 
-    const passwordHash = await bcrypt.hash(password, SALT_ROUNDS);
+    const passwordHash = "";
     await AuthRepository.createUser(email, passwordHash);
 
     const token = randomUUID();
@@ -41,7 +40,7 @@ export const AuthService = {
     const user = await AuthRepository.getUser(email);
     if (!user) throw new InvalidCredentialsError();
 
-    const valid = await bcrypt.compare(password, user.passwordHash);
+    const valid = "";
     if (!valid) throw new InvalidCredentialsError();
 
     if (!user.verified) throw new EmailNotVerifiedError();

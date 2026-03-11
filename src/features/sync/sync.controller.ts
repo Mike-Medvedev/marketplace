@@ -1,6 +1,10 @@
 import { isSessionValid } from "@/features/facebook/facebook.service.ts";
 import { resumeAllSearches } from "@/features/searches/searches.repository.ts";
-import { subscribeSyncEvents, publishSyncEvent, type SyncEvent } from "@/infra/redis/redis.pubsub.ts";
+import {
+  subscribeSyncEvents,
+  publishSyncEvent,
+  type SyncEvent,
+} from "@/infra/redis/redis.pubsub.ts";
 import { startContainerGroup, pollContainerState } from "./sync.aci.ts";
 import { SYNC_TIMEOUT_MS } from "./sync.constants.ts";
 import logger from "@/logger/logger.ts";
@@ -79,8 +83,8 @@ export const SyncController = {
     try {
       await startContainerGroup();
       sendSSE(res, { status: "container_running" });
-    } catch (err) {
-      logger.error("[sync] Failed to start ACI container group:", err);
+    } catch (error) {
+      logger.error("[sync] Failed to start ACI container group:", error);
       sendSSE(res, {
         status: "error",
         message: "Failed to start container group",
@@ -93,7 +97,7 @@ export const SyncController = {
     pollContainerState(pollerAbort.signal).then((state) => {
       if (state && !pollerAbort.signal.aborted) {
         publishSyncEvent({ type: "container_exited", reason: `Container state: ${state}` }).catch(
-          (err) => logger.error("[sync] Failed to publish container_exited:", err),
+          (error) => logger.error("[sync] Failed to publish container_exited:", error),
         );
       }
     });

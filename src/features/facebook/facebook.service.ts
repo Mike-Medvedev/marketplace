@@ -1,7 +1,12 @@
 import { SessionNotLoadedError } from "@/errors/errors.ts";
 import logger from "@/logger/logger.ts";
 import { getSession } from "./facebook.repository.ts";
-import { FIXED_HEADERS, BODY_DEFAULTS, FB_GRAPHQL_URL, REQUEST_SPECIFIC } from "./facebook.constants.ts";
+import {
+  FIXED_HEADERS,
+  BODY_DEFAULTS,
+  FB_GRAPHQL_URL,
+  REQUEST_SPECIFIC,
+} from "./facebook.constants.ts";
 import type { SessionConfig } from "./facebook.types.ts";
 
 /** Builds request config from the Redis-backed Facebook session (set via /webhook/refresh). Returns null if no session. */
@@ -88,8 +93,8 @@ export async function isSessionValid(): Promise<boolean> {
     const jsonText = rawText.startsWith("for (;;);") ? rawText.slice(9) : rawText;
     const json = JSON.parse(jsonText) as { error?: number };
     return json.error == null;
-  } catch (err) {
-    logger.warn("[session] Probe failed:", err);
+  } catch (error) {
+    logger.warn("[session] Probe failed:", error);
     return false;
   }
 }
