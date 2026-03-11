@@ -1,4 +1,5 @@
 import * as repository from "./searches.repository.ts";
+import { read } from "@/infra/redis/redis.client.ts";
 import {
   scheduleSearch,
   cancelSearch,
@@ -7,7 +8,8 @@ import {
   isScheduled,
   getNextRunAt,
 } from "@/features/scheduler/scheduler.service.ts";
-import type { ActiveSearch, StoredSearch, CreateSearchBody, UpdateSearchBody } from "./searches.types.ts";
+import { SearchNotFoundError } from "@/shared/errors/errors.ts";
+import type { ActiveSearch, StoredSearch, CreateSearchBody, UpdateSearchBody, SearchRun, SearchRunResults } from "./searches.types.ts";
 
 function enrichWithScheduleState(search: StoredSearch): ActiveSearch {
   return {
@@ -57,4 +59,31 @@ export async function pauseAllSearches(): Promise<number> {
 
 export async function resumeAllSearches(): Promise<number> {
   return repository.resumeAllSearches();
+}
+
+export async function getSearchRuns(searchId: string, userId: string): Promise<SearchRun[]> {
+  const search = await repository.getSearchById(searchId, userId);
+  if (!search) throw new SearchNotFoundError(searchId);
+  return repository.getRunsBySearchId(searchId);
+}
+
+export async function getSearchRunResults(
+  searchId: string,
+  runId: string,
+  userId: string,
+): Promise<SearchRunResults | null> {
+  const search = await repository.getSearchById(searchId, userId);
+  if (!search) throw new SearchNotFoundError(searchId);
+
+  const run = await repository.getRunById(runId, searchId);
+  if (!run) return null;
+
+  const raw = await read(run.redisResultKey);
+  const listings = raw ? JSON.parse(raw) : [];
+
+  return {
+    runId: run.id,
+    executedAt: run.executedAt,
+    listings,
+  };
 }

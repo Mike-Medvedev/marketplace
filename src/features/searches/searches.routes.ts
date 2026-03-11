@@ -7,6 +7,9 @@ import {
   createSearchBodySchema,
   updateSearchBodySchema,
   searchIdParamsSchema,
+  searchRunParamsSchema,
+  searchRunSchema,
+  searchRunResultsSchema,
 } from "./searches.types.ts";
 import { SearchesController } from "./searches.controller.ts";
 
@@ -72,4 +75,28 @@ searchesRouter.delete(
     summary: "Delete a saved search",
   },
   SearchesController.handleDeleteSearch,
+);
+
+searchesRouter.get(
+  "/:id/runs",
+  {
+    operationId: "getSearchRuns",
+    params: searchIdParamsSchema,
+    response: SuccessSchema(z.array(searchRunSchema)),
+    responses: { 404: ErrorSchema },
+    summary: "List all runs for a saved search, ordered by most recent first",
+  },
+  SearchesController.handleGetSearchRuns,
+);
+
+searchesRouter.get(
+  "/:id/runs/:runId/results",
+  {
+    operationId: "getSearchRunResults",
+    params: searchRunParamsSchema,
+    response: SuccessSchema(searchRunResultsSchema),
+    responses: { 404: ErrorSchema },
+    summary: "Get the listing results for a specific search run (from cache)",
+  },
+  SearchesController.handleGetSearchRunResults,
 );
