@@ -1,6 +1,6 @@
 import Redis from "ioredis";
 import { env } from "@/configs/env.ts";
-import logger from "@/logger/logger.ts";
+import logger from "@/infra/logger/logger.ts";
 
 const SYNC_CHANNEL = "sync:events";
 

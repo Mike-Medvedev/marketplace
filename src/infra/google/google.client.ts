@@ -1,6 +1,6 @@
 import { env } from "@/configs/env.ts";
-import { GeocodingError } from "@/errors/errors.ts";
-import logger from "@/logger/logger.ts";
+import { GeocodingError } from "@/shared/errors/errors";
+import logger from "@/infra/logger/logger";
 
 interface GeocodeResult {
   latitude: number;

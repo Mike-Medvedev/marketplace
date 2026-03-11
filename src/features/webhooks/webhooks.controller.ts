@@ -1,7 +1,7 @@
 import { setSession } from "@/features/facebook/facebook.repository.ts";
 import { publishSyncEvent } from "@/infra/redis/redis.pubsub.ts";
-import { sendSuccess, sendError } from "@/utils/api-response.ts";
-import logger from "@/logger/logger.ts";
+import { sendSuccess, sendError } from "@/shared/api-response";
+import logger from "@/infra/logger/logger";
 import type { Request, Response } from "express";
 
 export const WebhooksController = {

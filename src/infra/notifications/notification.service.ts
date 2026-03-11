@@ -1,7 +1,7 @@
 import nodemailer from "nodemailer";
 import { env } from "@/configs/env.ts";
 import type { NotificationMethod } from "@/features/searches/searches.types.ts";
-import logger from "@/logger/logger.ts";
+import logger from "@/infra/logger/logger";
 
 const transporter = nodemailer.createTransport({
   host: env.SMTP_HOST,
@@ -83,5 +83,7 @@ async function sendWebhookNotification(
     throw new Error(`Webhook POST to ${url} failed: ${response.status} ${response.statusText}`);
   }
 
-  logger.info(`[notify] Webhook delivered to ${url} for "${searchQuery}" (${listings.length} listings)`);
+  logger.info(
+    `[notify] Webhook delivered to ${url} for "${searchQuery}" (${listings.length} listings)`,
+  );
 }

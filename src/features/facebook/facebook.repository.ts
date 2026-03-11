@@ -1,4 +1,4 @@
-import logger from "@/logger/logger.ts";
+import logger from "@/infra/logger/logger.ts";
 import { read, write } from "@/infra/redis/redis.client.ts";
 import { SESSION_KEY } from "./facebook.constants.ts";
 import type { FacebookSession } from "./facebook.types.ts";

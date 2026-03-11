@@ -1,6 +1,6 @@
 import { env } from "@/configs/env.ts";
 import type { MarketplaceListing } from "@/features/scrape/scrape.types.ts";
-import logger from "@/logger/logger.ts";
+import logger from "@/infra/logger/logger";
 
 export async function analyzeListings(
   listings: Omit<MarketplaceListing, "photos" | "description">[],

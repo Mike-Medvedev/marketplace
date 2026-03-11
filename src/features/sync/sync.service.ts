@@ -8,7 +8,7 @@ import { sendResyncEmail } from "@/infra/email/email.client.ts";
 import { env } from "@/configs/env.ts";
 import { startContainerGroup, pollContainerState } from "./sync.aci.ts";
 import { SYNC_TIMEOUT_MS } from "./sync.constants.ts";
-import logger from "@/logger/logger.ts";
+import logger from "@/infra/logger/logger.ts";
 
 let resyncInProgress = false;
 

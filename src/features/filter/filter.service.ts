@@ -3,7 +3,7 @@ import { zodTextFormat } from "openai/helpers/zod";
 import { FILTER_PROMPT } from "./filter.constants.ts";
 import { ListingsModel } from "./filter.types.ts";
 import type { MarketplaceListing } from "@/features/scrape/scrape.types.ts";
-import logger from "@/logger/logger.ts";
+import logger from "@/infra/logger/logger.ts";
 
 export async function filterListings(
   listings: Omit<MarketplaceListing, "photos" | "description">[],

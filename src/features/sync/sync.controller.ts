@@ -7,7 +7,7 @@ import {
 } from "@/infra/redis/redis.pubsub.ts";
 import { startContainerGroup, pollContainerState } from "./sync.aci.ts";
 import { SYNC_TIMEOUT_MS } from "./sync.constants.ts";
-import logger from "@/logger/logger.ts";
+import logger from "@/infra/logger/logger.ts";
 import type { Request, Response } from "express";
 
 function sendSSE(res: Response, data: Record<string, unknown>): void {

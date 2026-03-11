@@ -1,18 +1,19 @@
 import type { Request, Response, NextFunction } from "express";
-import { AuthRepository } from "@/features/auth/auth.repository.ts";
-import { UnauthorizedError } from "@/errors/errors.ts";
-
-export async function authMiddleware(req: Request, _res: Response, next: NextFunction): Promise<void> {
+import { verifyUser } from "@/infra/auth/auth.service";
+import { MissingTokenError } from "@/shared/errors/errors";
+export async function validateUser(req: Request, _res: Response, next: NextFunction) {
   const authHeader = req.headers.authorization;
-  const token =
-    (authHeader?.startsWith("Bearer ") ? authHeader.slice(7) : null) ??
-    (typeof req.query.token === "string" ? req.query.token : null);
 
-  if (!token) throw new UnauthorizedError();
+  if (!authHeader?.startsWith("Bearer ")) {
+    return next(new MissingTokenError("Missing or invalid Authorization header"));
+  }
 
-  const email = await AuthRepository.getSession(token);
-  if (!email) throw new UnauthorizedError("Session expired or invalid");
+  const jwt = authHeader.split(" ")[1];
+  if (!jwt) {
+    return next(new MissingTokenError("Token missing from Authorization header"));
+  }
 
-  req.user = { email };
+  const user = await verifyUser(jwt);
+  req.user = user;
   next();
 }
