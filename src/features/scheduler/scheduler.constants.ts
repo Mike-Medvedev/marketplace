@@ -8,4 +8,4 @@ export const FREQUENCY_MS: Record<SearchFrequency, number> = {
   every_24h: 86_400_000,
 };
 
-export const RESULTS_TTL_SECONDS = 604_800; // 7 days
+export const RESULTS_TTL_SECONDS = 2_592_000; // 30 days

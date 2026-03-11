@@ -4,10 +4,11 @@ import {
   publishSyncEvent,
   type SyncEvent,
 } from "@/infra/redis/redis.pubsub.ts";
+import { write } from "@/infra/redis/redis.client.ts";
 import { sendResyncEmail } from "@/infra/email/email.client.ts";
 import { env } from "@/configs/env.ts";
 import { startContainerGroup, pollContainerState } from "./sync.aci.ts";
-import { SYNC_TIMEOUT_MS } from "./sync.constants.ts";
+import { SYNC_TIMEOUT_MS, SYNC_USER_KEY } from "./sync.constants.ts";
 import logger from "@/infra/logger/logger.ts";
 
 let resyncInProgress = false;
@@ -20,13 +21,15 @@ let resyncInProgress = false;
  *
  * Only one auto-resync runs at a time to avoid redundant container starts.
  */
-export async function triggerAutoResync(): Promise<void> {
+export async function triggerAutoResync(userId: string): Promise<void> {
   if (resyncInProgress) {
     logger.info("[auto-resync] Already in progress, skipping");
     return;
   }
   resyncInProgress = true;
   logger.info("[auto-resync] Starting automated resync");
+
+  await write(SYNC_USER_KEY, userId, SYNC_TIMEOUT_MS / 1000);
 
   try {
     await new Promise<void>((resolve) => {

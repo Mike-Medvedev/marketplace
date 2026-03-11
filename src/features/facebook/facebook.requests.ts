@@ -89,10 +89,11 @@ const marketplaceSearchParams = (
 };
 
 export async function marketplaceSearchRequestConfig(
+  userId: string,
   cursor: string | null = null,
   searchConfig?: Partial<MarketplaceSearchConfig>,
 ) {
-  const session = await getSessionOrThrow();
+  const session = await getSessionOrThrow(userId);
 
   const parsedSessionBody = parseBody(session.body);
   const config = resolveSearchConfig(searchConfig);
@@ -115,8 +116,8 @@ export async function marketplaceSearchRequestConfig(
   };
 }
 
-export async function marketplaceProductListingPhotosRequestConfig(targetId: string) {
-  const session = await getSessionOrThrow();
+export async function marketplaceProductListingPhotosRequestConfig(userId: string, targetId: string) {
+  const session = await getSessionOrThrow(userId);
   const marketplaceProductListingPhotosParams = (
     tId: string,
     sessionBody: Record<string, string>,
@@ -143,8 +144,8 @@ export async function marketplaceProductListingPhotosRequestConfig(targetId: str
   };
 }
 
-export async function marketplaceProductListingDescriptionRequestConfig(targetId: string) {
-  const session = await getSessionOrThrow();
+export async function marketplaceProductListingDescriptionRequestConfig(userId: string, targetId: string) {
+  const session = await getSessionOrThrow(userId);
   const marketplaceProductListingDescriptionParams = (
     tId: string,
     sessionBody: Record<string, string>,

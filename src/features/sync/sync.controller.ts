@@ -1,12 +1,14 @@
 import { isSessionValid } from "@/features/facebook/facebook.service.ts";
+import { setSession } from "@/features/facebook/facebook.repository.ts";
 import { resumeAllSearches } from "@/features/searches/searches.repository.ts";
 import {
   subscribeSyncEvents,
   publishSyncEvent,
   type SyncEvent,
 } from "@/infra/redis/redis.pubsub.ts";
+import { write } from "@/infra/redis/redis.client.ts";
 import { startContainerGroup, pollContainerState } from "./sync.aci.ts";
-import { SYNC_TIMEOUT_MS } from "./sync.constants.ts";
+import { SYNC_TIMEOUT_MS, SYNC_USER_KEY } from "./sync.constants.ts";
 import logger from "@/infra/logger/logger.ts";
 import type { Request, Response } from "express";
 
@@ -15,19 +17,23 @@ function sendSSE(res: Response, data: Record<string, unknown>): void {
 }
 
 export const SyncController = {
-  async beginIdentitySync(_req: Request, res: Response) {
+  async beginIdentitySync(req: Request, res: Response) {
+    const userId = req.user!.id;
+
     res.writeHead(200, {
       "Content-Type": "text/event-stream",
       "Cache-Control": "no-cache",
       Connection: "keep-alive",
     });
 
-    const valid = await isSessionValid();
+    const valid = await isSessionValid(userId);
     if (valid) {
       sendSSE(res, { status: "already_synced" });
       res.end();
       return;
     }
+
+    await write(SYNC_USER_KEY, userId, SYNC_TIMEOUT_MS / 1000);
 
     let unsubscribe: (() => void) | null = null;
     let timeout: ReturnType<typeof setTimeout> | null = null;
@@ -41,7 +47,7 @@ export const SyncController = {
       timeout = null;
     };
 
-    _req.on("close", () => {
+    req.on("close", () => {
       logger.info("[sync] Client disconnected");
       cleanup();
     });
@@ -49,7 +55,7 @@ export const SyncController = {
     const syncComplete = new Promise<void>((resolve) => {
       const handler = async (event: SyncEvent) => {
         if (event.type === "session_refreshed") {
-          const resumed = await resumeAllSearches();
+          const resumed = await resumeAllSearches(userId);
           logger.info(`[sync] Session refreshed, resumed ${resumed} searches`);
           sendSSE(res, { status: "synced" });
           cleanup();

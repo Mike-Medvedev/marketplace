@@ -1,114 +1,81 @@
-import { redis } from "@/infra/redis/redis.client.ts";
-import { randomUUID } from "node:crypto";
-import { KEY_PREFIX, INDEX_KEY } from "./searches.constants.ts";
+import { db } from "@/infra/db/db.ts";
+import { searches } from "@/infra/db/schema.ts";
+import { eq, and } from "drizzle-orm";
 import type { StoredSearch, CreateSearchBody, UpdateSearchBody } from "./searches.types.ts";
 
-function searchKey(id: string): string {
-  return `${KEY_PREFIX}${id}`;
+export async function getAllSearches(userId: string): Promise<StoredSearch[]> {
+  return db.select().from(searches).where(eq(searches.userId, userId));
 }
 
-export async function getAllSearches(): Promise<StoredSearch[]> {
-  const ids = await redis.smembers(INDEX_KEY);
-  if (ids.length === 0) return [];
+export async function getSearchById(id: string, userId?: string): Promise<StoredSearch | null> {
+  const conditions = userId
+    ? and(eq(searches.id, id), eq(searches.userId, userId))
+    : eq(searches.id, id);
 
-  const pipeline = redis.pipeline();
-  for (const id of ids) pipeline.get(searchKey(id));
-  const results = await pipeline.exec();
-  if (!results) return [];
-
-  const searches: StoredSearch[] = [];
-  for (const [err, val] of results) {
-    if (!err && typeof val === "string") {
-      searches.push(JSON.parse(val));
-    }
-  }
-  return searches;
+  const [search] = await db.select().from(searches).where(conditions).limit(1);
+  return search ?? null;
 }
 
-export async function getSearchById(id: string): Promise<StoredSearch | null> {
-  const raw = await redis.get(searchKey(id));
-  return raw ? JSON.parse(raw) : null;
-}
-
-export async function createSearch(body: CreateSearchBody): Promise<StoredSearch> {
-  const search: StoredSearch = {
-    id: randomUUID(),
-    criteria: body.criteria,
-    settings: body.settings,
-    status: "running",
-    lastRun: null,
-  };
-
-  await redis
-    .pipeline()
-    .set(searchKey(search.id), JSON.stringify(search))
-    .sadd(INDEX_KEY, search.id)
-    .exec();
-
-  return search;
+export async function createSearch(userId: string, body: CreateSearchBody): Promise<StoredSearch> {
+  const [search] = await db
+    .insert(searches)
+    .values({ ...body, userId })
+    .returning();
+  return search!;
 }
 
 export async function updateSearch(
   id: string,
+  userId: string,
   body: UpdateSearchBody,
 ): Promise<StoredSearch | null> {
-  const existing = await getSearchById(id);
-  if (!existing) return null;
-
-  const updated: StoredSearch = {
-    ...existing,
-    criteria: body.criteria,
-    settings: body.settings,
-  };
-
-  await redis.set(searchKey(id), JSON.stringify(updated));
-  return updated;
+  const [updated] = await db
+    .update(searches)
+    .set({ ...body, updatedAt: new Date() })
+    .where(and(eq(searches.id, id), eq(searches.userId, userId)))
+    .returning();
+  return updated ?? null;
 }
 
-export async function deleteSearch(id: string): Promise<boolean> {
-  const existed = await redis.get(searchKey(id));
-  if (!existed) return false;
-
-  await redis
-    .pipeline()
-    .del(searchKey(id))
-    .srem(INDEX_KEY, id)
-    .exec();
-
-  return true;
+export async function deleteSearch(id: string, userId: string): Promise<boolean> {
+  const [deleted] = await db
+    .delete(searches)
+    .where(and(eq(searches.id, id), eq(searches.userId, userId)))
+    .returning({ id: searches.id });
+  return !!deleted;
 }
 
-export async function updateLastRun(id: string, isoTimestamp: string): Promise<void> {
-  const existing = await getSearchById(id);
-  if (!existing) return;
-  const updated: StoredSearch = { ...existing, lastRun: isoTimestamp };
-  await redis.set(searchKey(id), JSON.stringify(updated));
+export async function updateLastRun(id: string, timestamp: Date): Promise<void> {
+  await db
+    .update(searches)
+    .set({ lastRun: timestamp, updatedAt: new Date() })
+    .where(eq(searches.id, id));
 }
 
-export async function pauseAllSearches(): Promise<number> {
-  const searches = await getAllSearches();
-  const running = searches.filter((s) => s.status === "running");
-  if (running.length === 0) return 0;
+export async function pauseAllSearches(userId?: string): Promise<number> {
+  const conditions = userId
+    ? and(eq(searches.status, "running"), eq(searches.userId, userId))
+    : eq(searches.status, "running");
 
-  const pipeline = redis.pipeline();
-  for (const search of running) {
-    const updated: StoredSearch = { ...search, status: "needs_attention" };
-    pipeline.set(searchKey(search.id), JSON.stringify(updated));
-  }
-  await pipeline.exec();
-  return running.length;
+  const updated = await db
+    .update(searches)
+    .set({ status: "needs_attention", updatedAt: new Date() })
+    .where(conditions)
+    .returning({ id: searches.id });
+
+  return updated.length;
 }
 
-export async function resumeAllSearches(): Promise<number> {
-  const searches = await getAllSearches();
-  const paused = searches.filter((s) => s.status === "needs_attention");
-  if (paused.length === 0) return 0;
+export async function resumeAllSearches(userId?: string): Promise<number> {
+  const conditions = userId
+    ? and(eq(searches.status, "needs_attention"), eq(searches.userId, userId))
+    : eq(searches.status, "needs_attention");
 
-  const pipeline = redis.pipeline();
-  for (const search of paused) {
-    const updated: StoredSearch = { ...search, status: "running" };
-    pipeline.set(searchKey(search.id), JSON.stringify(updated));
-  }
-  await pipeline.exec();
-  return paused.length;
+  const updated = await db
+    .update(searches)
+    .set({ status: "running", updatedAt: new Date() })
+    .where(conditions)
+    .returning({ id: searches.id });
+
+  return updated.length;
 }

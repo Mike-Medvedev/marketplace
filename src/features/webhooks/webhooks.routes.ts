@@ -41,8 +41,18 @@ webhookRouter.post(
   "/refresh",
   {
     operationId: "webhookRefresh",
-    summary: "Refresh Facebook session data",
+    summary: "Refresh Facebook session data (includes userId from Playwright or Redis)",
     skipValidation: true,
   },
   WebhooksController.handleRefresh,
+);
+
+webhookRouter.get(
+  "/sync-context",
+  {
+    operationId: "getSyncContext",
+    summary: "Get the active sync context (userId) for the Playwright container",
+    skipValidation: true,
+  },
+  WebhooksController.handleSyncContext,
 );

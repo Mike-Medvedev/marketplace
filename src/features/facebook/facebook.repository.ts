@@ -1,23 +1,42 @@
+import { db } from "@/infra/db/db.ts";
+import { facebookSessions } from "@/infra/db/schema.ts";
+import { eq } from "drizzle-orm";
 import logger from "@/infra/logger/logger.ts";
-import { read, write } from "@/infra/redis/redis.client.ts";
-import { SESSION_KEY } from "./facebook.constants.ts";
 import type { FacebookSession } from "./facebook.types.ts";
 
-/** Load the Facebook session from Redis. Returns null if none stored or Redis read fails. */
-export async function getSession(): Promise<FacebookSession | null> {
-  logger.info("=================GETTING SESSION========================");
+export async function getSession(userId: string): Promise<FacebookSession | null> {
   try {
-    const raw = await read(SESSION_KEY);
-    if (!raw) return null;
-    const session = JSON.parse(raw) as FacebookSession;
-    return session;
-  } catch (error) {
-    logger.warn("[session-store] Failed to read session from Redis:", error);
+    const [session] = await db
+      .select()
+      .from(facebookSessions)
+      .where(eq(facebookSessions.userId, userId))
+      .limit(1);
+    return session ?? null;
+  } catch (err) {
+    logger.warn("[session-store] Failed to read session from DB:", err);
     return null;
   }
 }
 
-/** Persist the Facebook session to Redis. Overwrites any existing session. */
-export async function setSession(session: FacebookSession): Promise<void> {
-  await write(SESSION_KEY, JSON.stringify(session), 86400); // TTL 86400 = 1 day
+export async function setSession(
+  userId: string,
+  data: { headers: Record<string, string>; body: string; capturedAt: string },
+): Promise<void> {
+  await db
+    .insert(facebookSessions)
+    .values({
+      userId,
+      headers: data.headers,
+      body: data.body,
+      capturedAt: new Date(data.capturedAt),
+    })
+    .onConflictDoUpdate({
+      target: facebookSessions.userId,
+      set: {
+        headers: data.headers,
+        body: data.body,
+        capturedAt: new Date(data.capturedAt),
+        updatedAt: new Date(),
+      },
+    });
 }

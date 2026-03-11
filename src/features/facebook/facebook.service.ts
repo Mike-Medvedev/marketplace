@@ -9,11 +9,10 @@ import {
 } from "./facebook.constants.ts";
 import type { SessionConfig } from "./facebook.types.ts";
 
-/** Builds request config from the Redis-backed Facebook session (set via /webhook/refresh). Returns null if no session. */
-export async function getSessionConfig(): Promise<SessionConfig | null> {
-  const raw = await getSession();
+export async function getSessionConfig(userId: string): Promise<SessionConfig | null> {
+  const raw = await getSession(userId);
   if (!raw) {
-    logger.debug("[session] No session in store (different instance or not yet refreshed?)");
+    logger.debug("[session] No session in store for user");
     return null;
   }
 
@@ -47,26 +46,20 @@ export async function getSessionConfig(): Promise<SessionConfig | null> {
   return { cookie, headers, body: bodyParams };
 }
 
-async function requireSession(): Promise<SessionConfig> {
-  const session = await getSessionConfig();
+async function requireSession(userId: string): Promise<SessionConfig> {
+  const session = await getSessionConfig(userId);
   if (!session) {
     throw new SessionNotLoadedError();
   }
   return session;
 }
 
-/** Session config for requests. Throws if no session has been set via /webhook/refresh. */
-export function getSessionOrThrow(): Promise<SessionConfig> {
-  return requireSession();
+export function getSessionOrThrow(userId: string): Promise<SessionConfig> {
+  return requireSession(userId);
 }
 
-/**
- * Probes Facebook with a lightweight GraphQL request to check whether the
- * stored session is still accepted. Returns true if valid, false if expired
- * or missing.
- */
-export async function isSessionValid(): Promise<boolean> {
-  const session = await getSessionConfig();
+export async function isSessionValid(userId: string): Promise<boolean> {
+  const session = await getSessionConfig(userId);
   if (!session) return false;
 
   try {
