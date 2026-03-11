@@ -1,0 +1,52 @@
+---
+description: Enforce drizzle-orm/zod schema generation for feature types that reference DB tables
+globs: src/features/**/*.types.ts
+alwaysApply: false
+---
+
+# Drizzle Zod Schema Generation
+
+When a feature interacts with a database table, its `.types.ts` must derive Zod schemas from the Drizzle schema using `drizzle-orm/zod` — never hand-write Zod schemas for DB columns.
+
+## Required imports
+
+```typescript
+import { createSelectSchema, createInsertSchema, createUpdateSchema } from "drizzle-orm/zod";
+import { searches } from "@/infra/db/schema.ts";
+```
+
+## Usage
+
+```typescript
+// ❌ BAD — hand-written Zod schema duplicating DB columns
+export const storedSearchSchema = z.object({
+  id: z.string().uuid(),
+  query: z.string(),
+  status: z.enum(["running", "paused"]),
+  createdAt: z.date(),
+});
+
+// ✅ GOOD — derived from Drizzle schema
+export const storedSearchSchema = createSelectSchema(searches);
+export const createSearchSchema = createInsertSchema(searches);
+export const updateSearchSchema = createUpdateSchema(searches);
+export type StoredSearch = z.infer<typeof storedSearchSchema>;
+```
+
+## Refinements
+
+Use the second argument to extend or narrow fields without redefining the full schema:
+
+```typescript
+export const createSearchSchema = createInsertSchema(searches, {
+  query: (schema) => schema.min(1),
+  status: z.literal("running"),
+});
+```
+
+## Rules
+
+- One `createSelectSchema` / `createInsertSchema` / `createUpdateSchema` per table the feature uses
+- Use `.pick()` / `.omit()` to scope request schemas (e.g. omit `id` and `createdAt` from insert)
+- Non-DB types (request params, API-only shapes) can still be plain Zod or interfaces
+- All Drizzle table definitions live in `src/infra/db/schema.ts` — never define tables in feature files
