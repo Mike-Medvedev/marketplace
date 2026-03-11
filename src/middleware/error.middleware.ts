@@ -75,8 +75,8 @@ const errorHandler: ErrorRequestHandler = function (
   if (error instanceof FacebookSessionExpiredError) {
     logger.warn(error.message);
     sendError(res, 401, "FACEBOOK_SESSION_EXPIRED", error.message);
-    triggerAutoResync().catch((err) => {
-      logger.error("[error-middleware] Auto-resync failed:", err);
+    triggerAutoResync().catch((error) => {
+      logger.error("[error-middleware] Auto-resync failed:", error);
     });
     return;
   }

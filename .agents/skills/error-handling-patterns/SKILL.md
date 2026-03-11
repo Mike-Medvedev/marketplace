@@ -231,10 +231,7 @@ if (result.ok) {
 }
 
 // Chaining Results
-function chain<T, U, E>(
-  result: Result<T, E>,
-  fn: (value: T) => Result<U, E>,
-): Result<U, E> {
+function chain<T, U, E>(result: Result<T, E>, fn: (value: T) => Result<U, E>): Result<U, E> {
   return result.ok ? fn(result.value) : result;
 }
 ```
@@ -338,7 +335,7 @@ fn get_user_age(id: &str) -> Result<u32, AppError> {
 func getUser(id string) (*User, error) {
     user, err := db.QueryUser(id)
     if err != nil {
-        return nil, fmt.Errorf("failed to query user: %w", err)
+        return nil, fmt.Errorf("failed to query user: %w", error)
     }
     if user == nil {
         return nil, errors.New("user not found")
@@ -377,7 +374,7 @@ if err != nil {
 func processUser(id string) error {
     user, err := getUser(id)
     if err != nil {
-        return fmt.Errorf("process user failed: %w", err)
+        return fmt.Errorf("process user failed: %w", error)
     }
     // Process user
     return nil
@@ -487,10 +484,7 @@ class ErrorCollector {
     if (this.errors.length === 1) {
       throw this.errors[0];
     }
-    throw new AggregateError(
-      this.errors,
-      `${this.errors.length} errors occurred`,
-    );
+    throw new AggregateError(this.errors, `${this.errors.length} errors occurred`);
   }
 }
 

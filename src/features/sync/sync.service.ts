@@ -1,8 +1,9 @@
+import { pauseAllSearches, resumeAllSearches } from "@/features/searches/searches.service.ts";
 import {
-  pauseAllSearches,
-  resumeAllSearches,
-} from "@/features/searches/searches.service.ts";
-import { subscribeSyncEvents, publishSyncEvent, type SyncEvent } from "@/infra/redis/redis.pubsub.ts";
+  subscribeSyncEvents,
+  publishSyncEvent,
+  type SyncEvent,
+} from "@/infra/redis/redis.pubsub.ts";
 import { sendResyncEmail } from "@/infra/email/email.client.ts";
 import { env } from "@/configs/env.ts";
 import { startContainerGroup, pollContainerState } from "./sync.aci.ts";
@@ -46,8 +47,8 @@ export async function triggerAutoResync(): Promise<void> {
         logger.warn(`[auto-resync] Paused ${paused} searches, sending email notification`);
         try {
           await sendResyncEmail(env.SMTP_USER);
-        } catch (err) {
-          logger.error("[auto-resync] Failed to send resync email:", err);
+        } catch (error) {
+          logger.error("[auto-resync] Failed to send resync email:", error);
         }
         cleanup();
         resolve();
@@ -62,7 +63,9 @@ export async function triggerAutoResync(): Promise<void> {
         } else if (event.type === "needs_login") {
           await handleNeedsHumanLogin();
         } else if (event.type === "container_exited") {
-          logger.error(`[auto-resync] Container crashed: ${event.reason}. Next scheduled search will retry.`);
+          logger.error(
+            `[auto-resync] Container crashed: ${event.reason}. Next scheduled search will retry.`,
+          );
           cleanup();
           resolve();
         }
@@ -80,14 +83,17 @@ export async function triggerAutoResync(): Promise<void> {
         .then(() => {
           pollContainerState(pollerAbort.signal).then((state) => {
             if (state && !pollerAbort.signal.aborted) {
-              publishSyncEvent({ type: "container_exited", reason: `Container state: ${state}` }).catch(
-                (err) => logger.error("[auto-resync] Failed to publish container_exited:", err),
+              publishSyncEvent({
+                type: "container_exited",
+                reason: `Container state: ${state}`,
+              }).catch((error) =>
+                logger.error("[auto-resync] Failed to publish container_exited:", error),
               );
             }
           });
         })
-        .catch(async (err) => {
-          logger.error("[auto-resync] Failed to start ACI container group:", err);
+        .catch(async (error) => {
+          logger.error("[auto-resync] Failed to start ACI container group:", error);
           await handleNeedsHumanLogin();
         });
     });

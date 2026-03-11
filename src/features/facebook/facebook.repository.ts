@@ -11,8 +11,8 @@ export async function getSession(): Promise<FacebookSession | null> {
     if (!raw) return null;
     const session = JSON.parse(raw) as FacebookSession;
     return session;
-  } catch (err) {
-    logger.warn("[session-store] Failed to read session from Redis:", err);
+  } catch (error) {
+    logger.warn("[session-store] Failed to read session from Redis:", error);
     return null;
   }
 }

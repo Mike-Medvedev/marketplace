@@ -59,8 +59,8 @@ async function executeTick(search: StoredSearch): Promise<void> {
     logger.info(
       `[scheduler] Search "${search.criteria.query}" completed — ${capped.length} listings stored & notified`,
     );
-  } catch (err) {
-    logger.error(`[scheduler] Search ${search.id} failed:`, err);
+  } catch (error) {
+    logger.error(`[scheduler] Search ${search.id} failed:`, error);
   }
 }
 
@@ -136,4 +136,3 @@ export function cancelAll(): void {
   timers.clear();
   scheduledAt.clear();
 }
-
