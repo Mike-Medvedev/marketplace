@@ -1,14 +1,15 @@
 import { setSession } from "@/features/facebook/facebook.repository.ts";
 import { publishSyncEvent } from "@/infra/redis/redis.pubsub.ts";
-import { sendSuccess, sendError } from "@/shared/api-response";
-import logger from "@/infra/logger/logger";
+import { read } from "@/infra/redis/redis.client.ts";
+import { SYNC_USER_KEY } from "@/features/sync/sync.constants.ts";
+import logger from "@/infra/logger/logger.ts";
 import type { Request, Response } from "express";
 
 export const WebhooksController = {
   async handleAnalyzedListings(req: Request, res: Response) {
-    logger.info("Recieved analyzed listings in webhook, notifying user");
+    logger.info("Received analyzed listings in webhook, notifying user");
     logger.info(req.body);
-    sendSuccess(res, null);
+    res.success(null);
   },
 
   async handleNeedsLogin(req: Request, res: Response) {
@@ -16,12 +17,12 @@ export const WebhooksController = {
     const { novncUrl } = req.body;
     if (!novncUrl) {
       logger.warn("[needs-login] Request missing novncUrl");
-      sendError(res, 400, "BAD_REQUEST", "Missing novncUrl");
+      res.error(400, new Error("Missing novncUrl"));
       return;
     }
     logger.info(`[needs-login] Human login required, noVNC: ${novncUrl}`);
     await publishSyncEvent({ type: "needs_login", novncUrl });
-    sendSuccess(res, null);
+    res.success(null);
   },
 
   async handleContainerExited(req: Request, res: Response) {
@@ -29,21 +30,37 @@ export const WebhooksController = {
     const exitReason = typeof reason === "string" ? reason : "Unknown error";
     logger.warn(`[container-exited] Container exited: ${exitReason}`);
     await publishSyncEvent({ type: "container_exited", reason: exitReason });
-    sendSuccess(res, null);
+    res.success(null);
   },
 
   async handleRefresh(req: Request, res: Response) {
-    const { headers, body, capturedAt } = req.body;
+    const { userId, headers, body, capturedAt } = req.body;
 
     if (!headers || !body) {
       logger.warn("[refresh] Received invalid session data");
-      sendError(res, 400, "BAD_REQUEST", "Missing headers or body");
+      res.error(400, new Error("Missing headers or body"));
       return;
     }
 
-    await setSession({ headers, body, capturedAt });
-    logger.info(`[refresh] Session updated at ${capturedAt}`);
+    const resolvedUserId = userId ?? (await read(SYNC_USER_KEY));
+    if (!resolvedUserId) {
+      logger.warn("[refresh] No userId in payload or Redis");
+      res.error(400, new Error("Cannot determine userId for session"));
+      return;
+    }
+
+    await setSession(resolvedUserId, { headers, body, capturedAt });
+    logger.info(`[refresh] Session updated for user ${resolvedUserId} at ${capturedAt}`);
     await publishSyncEvent({ type: "session_refreshed" });
-    sendSuccess(res, null);
+    res.success(null);
+  },
+
+  async handleSyncContext(_req: Request, res: Response) {
+    const userId = await read(SYNC_USER_KEY);
+    if (!userId) {
+      res.error(404, new Error("No active sync session"));
+      return;
+    }
+    res.success({ userId });
   },
 };

@@ -1,21 +1,17 @@
 import {
   DatabaseResourceNotFoundError,
-  EmailNotVerifiedError,
   FacebookRateLimitError,
   FacebookSessionExpiredError,
   FetchListingDescriptionError,
   FetchListingPhotosError,
   GeocodingError,
-  InvalidCredentialsError,
+  MissingTokenError,
   NotificationError,
   SchedulerError,
   SearchMarketPlaceError,
   SearchNotFoundError,
   SessionNotLoadedError,
   UnauthorizedDatabaseRequestError,
-  UnauthorizedError,
-  UserAlreadyExistsError,
-  VerificationTokenExpiredError,
 } from "@/shared/errors/errors";
 import { triggerAutoResync } from "@/features/sync/sync.service.ts";
 import { APIError } from "openai";
@@ -29,32 +25,16 @@ const errorHandler: ErrorRequestHandler = function (
   _next: NextFunction,
 ) {
   if (error instanceof DatabaseResourceNotFoundError) {
-    req.log.error(error);
+    logger.warn(error.message);
     return res.error(404, error);
   }
   if (error instanceof UnauthorizedDatabaseRequestError) {
-    req.log.error(error);
-    return res.error(403, error);
-  }
-  if (error instanceof UnauthorizedError) {
-    logger.warn(error.message);
-    return res.error(401, error);
-  }
-  if (error instanceof InvalidCredentialsError) {
-    logger.warn(error.message);
-    return res.error(401, error);
-  }
-  if (error instanceof UserAlreadyExistsError) {
-    logger.warn(error.message);
-    return res.error(409, error);
-  }
-  if (error instanceof EmailNotVerifiedError) {
     logger.warn(error.message);
     return res.error(403, error);
   }
-  if (error instanceof VerificationTokenExpiredError) {
+  if (error instanceof MissingTokenError) {
     logger.warn(error.message);
-    return res.error(400, error);
+    return res.error(401, error);
   }
   if (error instanceof GeocodingError) {
     logger.warn(error.message);
@@ -74,9 +54,12 @@ const errorHandler: ErrorRequestHandler = function (
   }
   if (error instanceof FacebookSessionExpiredError) {
     logger.warn(error.message);
-    triggerAutoResync().catch((err) => {
-      logger.error("[error-middleware] Auto-resync failed:", err);
-    });
+    const userId = req.user?.id;
+    if (userId) {
+      triggerAutoResync(userId).catch((err) => {
+        logger.error("[error-middleware] Auto-resync failed:", err);
+      });
+    }
     return res.error(401, error);
   }
   if (error instanceof SearchMarketPlaceError) {

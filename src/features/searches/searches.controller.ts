@@ -1,39 +1,38 @@
 import logger from "@/infra/logger/logger.ts";
 import { SearchNotFoundError } from "@/shared/errors/errors.ts";
-import { sendSuccess } from "@/shared/api-response.ts";
 import * as service from "./searches.service.ts";
 import type { IdParams } from "./searches.types.ts";
 import type { Request, Response } from "express";
 
 export const SearchesController = {
-  async handleGetSearches(_req: Request, res: Response) {
-    const searches = await service.getAllSearches();
-    sendSuccess(res, searches);
+  async handleGetSearches(req: Request, res: Response) {
+    const searches = await service.getAllSearches(req.user!.id);
+    res.success(searches);
   },
 
   async handleGetSearchById(req: Request<IdParams>, res: Response) {
-    const search = await service.getSearchById(req.params.id);
+    const search = await service.getSearchById(req.params.id, req.user!.id);
     if (!search) throw new SearchNotFoundError(req.params.id);
-    sendSuccess(res, search);
+    res.success(search);
   },
 
   async handleCreateSearch(req: Request, res: Response) {
-    const search = await service.createSearch(req.body);
-    logger.info(`Search created & scheduled: ${search.id} — "${search.criteria.query}"`);
-    sendSuccess(res, search, 201);
+    const search = await service.createSearch(req.user!.id, req.body);
+    logger.info(`Search created & scheduled: ${search.id} — "${search.query}"`);
+    res.success(search, 201);
   },
 
   async handleUpdateSearch(req: Request<IdParams>, res: Response) {
-    const search = await service.updateSearch(req.params.id, req.body);
+    const search = await service.updateSearch(req.params.id, req.user!.id, req.body);
     if (!search) throw new SearchNotFoundError(req.params.id);
-    logger.info(`Search updated & rescheduled: ${search.id} — "${search.criteria.query}"`);
-    sendSuccess(res, search);
+    logger.info(`Search updated & rescheduled: ${search.id} — "${search.query}"`);
+    res.success(search);
   },
 
   async handleDeleteSearch(req: Request<IdParams>, res: Response) {
-    const deleted = await service.deleteSearch(req.params.id);
+    const deleted = await service.deleteSearch(req.params.id, req.user!.id);
     if (!deleted) throw new SearchNotFoundError(req.params.id);
     logger.info(`Search deleted & unscheduled: ${req.params.id}`);
-    sendSuccess(res, null);
+    res.success(null);
   },
 };

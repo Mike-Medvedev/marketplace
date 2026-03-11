@@ -44,6 +44,7 @@ import logger from "@/infra/logger/logger.ts";
  */
 export async function searchMarketPlace(
   params: SearchMarketPlaceParams = {},
+  userId?: string,
 ): Promise<SearchMarketPlaceResult> {
   const {
     cursor = null,
@@ -66,7 +67,7 @@ export async function searchMarketPlace(
 
   if (pageCount == null || pageCount <= 1) {
     logger.info(`[searchMarketPlace] Fetching single page...`);
-    return fetchOnePage(cursor, listingFetchDelayMs, searchConfig);
+    return fetchOnePage(cursor, listingFetchDelayMs, searchConfig, userId);
   }
 
   const allListings: Omit<MarketplaceListing, "photos" | "description">[] = [];
@@ -74,7 +75,7 @@ export async function searchMarketPlace(
   let pageNum = 1;
 
   do {
-    const page = await fetchOnePage(nextCursor, listingFetchDelayMs, searchConfig);
+    const page = await fetchOnePage(nextCursor, listingFetchDelayMs, searchConfig, userId);
     allListings.push(...page.listings);
     pageNum++;
     nextCursor = page.nextCursor;
@@ -96,9 +97,10 @@ async function fetchOnePage(
   cursor: string | null,
   listingFetchDelayMs: number = DEFAULT_LISTING_FETCH_DELAY_MS,
   searchConfig?: Partial<MarketplaceSearchConfig>,
+  userId?: string,
 ): Promise<SearchMarketPlaceResult> {
   logger.info(`[fetchOnePage] Requesting Facebook GraphQL (cursor=${cursor ? "yes" : "none"})`);
-  const requestConfig = await marketplaceSearchRequestConfig(cursor, searchConfig);
+  const requestConfig = await marketplaceSearchRequestConfig(userId!, cursor, searchConfig);
   const response = await fetch(FB_GRAPHQL_URL, requestConfig);
 
   if (!response.ok) {
@@ -197,6 +199,7 @@ function extractListingDetails(
 }
 
 async function addPhotosAndDescriptions(
+  userId: string,
   rawListings: RawListing[],
   delayMs: number = DEFAULT_LISTING_FETCH_DELAY_MS,
 ): Promise<MarketplaceListing[]> {
@@ -205,10 +208,10 @@ async function addPhotosAndDescriptions(
     const listing = rawListings[i]!;
     const details = extractListingDetails(listing);
     logger.info(`fetching photos and description for listing with title: ${details.title}`);
-    const photos = await fetchListingPhotos(listing.id);
+    const photos = await fetchListingPhotos(userId, listing.id);
     logger.info(`fetched photos, delaying for ${delayMs}ms until fetching description`);
     await delay(delayMs);
-    const description = await fetchListingDescription(listing.id);
+    const description = await fetchListingDescription(userId, listing.id);
     logger.info(`fetched description, delaying for ${delayMs}ms until fetching next listing`);
     await delay(delayMs);
 
@@ -217,10 +220,10 @@ async function addPhotosAndDescriptions(
   return results;
 }
 
-async function fetchListingPhotos(listingId: string): Promise<{ uri: string }[]> {
+async function fetchListingPhotos(userId: string, listingId: string): Promise<{ uri: string }[]> {
   const response = await fetch(
     FB_GRAPHQL_URL,
-    await marketplaceProductListingPhotosRequestConfig(listingId),
+    await marketplaceProductListingPhotosRequestConfig(userId, listingId),
   );
 
   if (!response.ok) {
@@ -243,10 +246,10 @@ async function fetchListingPhotos(listingId: string): Promise<{ uri: string }[]>
   return (photos ?? []).map((p) => p.image);
 }
 
-async function fetchListingDescription(listingId: string): Promise<string> {
+async function fetchListingDescription(userId: string, listingId: string): Promise<string> {
   const response = await fetch(
     FB_GRAPHQL_URL,
-    await marketplaceProductListingDescriptionRequestConfig(listingId),
+    await marketplaceProductListingDescriptionRequestConfig(userId, listingId),
   );
 
   if (!response.ok) {
