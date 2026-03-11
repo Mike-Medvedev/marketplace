@@ -1,17 +1,17 @@
 ---
-description: Enforce drizzle-orm/zod schema generation for feature types that reference DB tables
+description: Enforce drizzle-zod schema generation for feature types that reference DB tables
 globs: src/features/**/*.types.ts
 alwaysApply: false
 ---
 
 # Drizzle Zod Schema Generation
 
-When a feature interacts with a database table, its `.types.ts` must derive Zod schemas from the Drizzle schema using `drizzle-orm/zod` — never hand-write Zod schemas for DB columns.
+When a feature interacts with a database table, its `.types.ts` must derive Zod schemas from the Drizzle schema using `drizzle-zod` — never hand-write Zod schemas for DB columns.
 
 ## Required imports
 
 ```typescript
-import { createSelectSchema, createInsertSchema, createUpdateSchema } from "drizzle-orm/zod";
+import { createSelectSchema, createInsertSchema, createUpdateSchema } from "drizzle-zod";
 import { searches } from "@/infra/db/schema.ts";
 ```
 
