@@ -13,14 +13,16 @@ function parseBody(body: any): Record<string, string> {
 
 function resolveSearchConfig(overrides?: Partial<MarketplaceSearchConfig>) {
   const query = encodeURIComponent(overrides?.query ?? DEFAULT_SEARCH_CONFIG.query);
+  const minPriceDollars = overrides?.minPrice ?? DEFAULT_SEARCH_CONFIG.minPrice;
+  const maxPriceDollars = overrides?.maxPrice ?? DEFAULT_SEARCH_CONFIG.maxPrice;
   return {
     queryEncoded: query,
     locationId: overrides?.locationId ?? DEFAULT_SEARCH_CONFIG.locationId,
     latitude: overrides?.latitude ?? DEFAULT_SEARCH_CONFIG.latitude,
     longitude: overrides?.longitude ?? DEFAULT_SEARCH_CONFIG.longitude,
     radiusKm: Math.min(overrides?.radiusKm ?? DEFAULT_SEARCH_CONFIG.radiusKm, MAX_RADIUS_KM),
-    minPrice: overrides?.minPrice ?? DEFAULT_SEARCH_CONFIG.minPrice,
-    maxPrice: overrides?.maxPrice ?? DEFAULT_SEARCH_CONFIG.maxPrice,
+    minPriceCents: minPriceDollars * 100,
+    maxPriceCents: maxPriceDollars != null ? maxPriceDollars * 100 : null,
     dateListedDays: overrides?.dateListedDays ?? DEFAULT_SEARCH_CONFIG.dateListedDays,
   };
 }
@@ -49,8 +51,8 @@ const marketplaceSearchParams = (
         commerce_search_and_rp_ctime_days: config.dateListedDays,
         filter_location_latitude: config.latitude,
         filter_location_longitude: config.longitude,
-        filter_price_lower_bound: config.minPrice,
-        filter_price_upper_bound: config.maxPrice ?? 214748364700,
+        filter_price_lower_bound: config.minPriceCents,
+        filter_price_upper_bound: config.maxPriceCents ?? 214748364700,
         filter_radius_km: config.radiusKm,
       },
       custom_request_params: {
