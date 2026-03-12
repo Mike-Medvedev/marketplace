@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { searchMarketPlace } from "@/features/scrape/scrape.service.ts";
+import { filterListings } from "@/features/filter/filter.service.ts";
 import { write } from "@/infra/redis/redis.client.ts";
 import { publishSearchEvent } from "@/infra/redis/redis.pubsub.ts";
 import { RESULTS_TTL_SECONDS } from "@/features/scheduler/scheduler.constants.ts";
@@ -39,21 +40,25 @@ export async function runSearch(search: StoredSearch): Promise<SearchRunResults>
 
   const { listings } = await searchMarketPlace(params, search.userId);
 
+  const finalListings = search.prompt
+    ? await filterListings(listings, search.prompt)
+    : listings;
+
   const runId = randomUUID();
   const redisKey = resultsKey(search.id, runId);
-  await write(redisKey, JSON.stringify(listings), RESULTS_TTL_SECONDS);
+  await write(redisKey, JSON.stringify(finalListings), RESULTS_TTL_SECONDS);
 
-  await repository.createRun(runId, search.id, redisKey, listings.length);
+  await repository.createRun(runId, search.id, redisKey, finalListings.length);
   await repository.updateLastRun(search.id, new Date());
 
-  logger.info(`[runSearch] "${search.query}" completed — ${listings.length} listings stored`);
+  logger.info(`[runSearch] "${search.query}" completed — ${finalListings.length} listings stored (${listings.length} scraped)`);
 
   publishSearchEvent(search.id, {
     type: "completed",
     searchId: search.id,
     runId,
-    listingCount: listings.length,
+    listingCount: finalListings.length,
   }).catch((e) => logger.error(`[runSearch] Failed to publish completed event:`, e));
 
-  return { runId, executedAt: new Date(), listings };
+  return { runId, executedAt: new Date(), listings: finalListings };
 }

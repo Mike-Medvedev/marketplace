@@ -36,6 +36,7 @@ export const createSearchBodySchema = createInsertSchema(searches, {
   listingsPerCheck: true,
   notificationType: true,
   notificationTarget: true,
+  prompt: true,
 });
 
 export const updateSearchBodySchema = createUpdateSchema(searches).pick({
@@ -48,6 +49,7 @@ export const updateSearchBodySchema = createUpdateSchema(searches).pick({
   listingsPerCheck: true,
   notificationType: true,
   notificationTarget: true,
+  prompt: true,
   status: true,
 });
 

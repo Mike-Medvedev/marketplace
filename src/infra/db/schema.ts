@@ -63,6 +63,7 @@ export const searches = pgTable("searches", {
   listingsPerCheck: integer("listings_per_check").notNull().default(24),
   notificationType: notificationMethodEnum("notification_type").notNull(),
   notificationTarget: text("notification_target").notNull(),
+  prompt: text(),
   status: searchStatusEnum().notNull().default("running"),
   lastRun: timestamp("last_run", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
