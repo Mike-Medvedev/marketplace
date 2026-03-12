@@ -55,8 +55,6 @@ export function scheduleSearch(search: StoredSearch): void {
     `[scheduler] Scheduling "${search.query}" every ${intervalMs / 60_000}min (${search.id})`,
   );
 
-  executeTick(search);
-
   const timer = setInterval(() => {
     repository.getSearchById(search.id).then((latest) => {
       if (!latest || latest.status !== "running") {

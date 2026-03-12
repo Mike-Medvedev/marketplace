@@ -50,8 +50,12 @@ export const SyncController = {
     };
 
     req.on("close", () => {
-      logger.info("[sync] Client disconnected");
+      logger.info("[sync] Client disconnected, tearing down sync");
       cleanup();
+      del(SYNC_USER_KEY).catch(() => {});
+      stopContainerGroup().catch((error) => {
+        logger.error("[sync] Failed to stop container on disconnect:", error);
+      });
     });
 
     const syncComplete = new Promise<void>((resolve) => {
