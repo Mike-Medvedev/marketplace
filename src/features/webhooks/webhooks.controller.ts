@@ -2,6 +2,7 @@ import { setSession } from "@/features/facebook/facebook.repository.ts";
 import { publishSyncEvent } from "@/infra/redis/redis.pubsub.ts";
 import { read } from "@/infra/redis/redis.client.ts";
 import { SYNC_USER_KEY } from "@/features/sync/sync.constants.ts";
+import { getContainerGroupIp } from "@/features/sync/sync.aci.ts";
 import logger from "@/infra/logger/logger.ts";
 import type { Request, Response } from "express";
 
@@ -63,7 +64,9 @@ export const WebhooksController = {
       res.error(404, new Error("No active sync session"));
       return;
     }
-    logger.info(`[sync-context] Returning sync context for user ${userId}`);
-    res.success({ userId });
+
+    const containerIp = await getContainerGroupIp();
+    logger.info(`[sync-context] Returning sync context for user ${userId}, containerIp: ${containerIp}`);
+    res.success({ userId, containerIp });
   },
 };
