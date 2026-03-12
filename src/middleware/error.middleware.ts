@@ -6,6 +6,7 @@ import {
   FetchListingPhotosError,
   GeocodingError,
   MissingTokenError,
+  NoActiveSyncError,
   NotificationError,
   SchedulerError,
   SearchMarketPlaceError,
@@ -47,6 +48,10 @@ const errorHandler: ErrorRequestHandler = function (
   if (error instanceof SessionNotLoadedError) {
     logger.warn(error.message);
     return res.error(503, error);
+  }
+  if (error instanceof NoActiveSyncError) {
+    logger.warn(error.message);
+    return res.error(409, error);
   }
   if (error instanceof FacebookRateLimitError) {
     logger.warn(`[rate-limit] Facebook error code ${error.facebookErrorCode}: ${error.message}`);

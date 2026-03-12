@@ -6,9 +6,11 @@ import {
   publishSyncEvent,
   type SyncEvent,
 } from "@/infra/redis/redis.pubsub.ts";
-import { write } from "@/infra/redis/redis.client.ts";
-import { startContainerGroup, pollContainerState } from "./sync.aci.ts";
+import { read, write, del } from "@/infra/redis/redis.client.ts";
+import { startContainerGroup, stopContainerGroup, pollContainerState } from "./sync.aci.ts";
+import { resetResyncFlag } from "./sync.service.ts";
 import { SYNC_TIMEOUT_MS, SYNC_USER_KEY } from "./sync.constants.ts";
+import { NoActiveSyncError } from "@/shared/errors/errors.ts";
 import logger from "@/infra/logger/logger.ts";
 import type { Request, Response } from "express";
 
@@ -109,5 +111,22 @@ export const SyncController = {
     });
 
     await syncComplete;
+  },
+
+  async abortSync(_req: Request, res: Response) {
+    const syncUserId = await read(SYNC_USER_KEY);
+    if (!syncUserId) throw new NoActiveSyncError();
+
+    logger.info("[sync-abort] Aborting sync, stopping container");
+
+    stopContainerGroup().catch((error) => {
+      logger.error("[sync-abort] Failed to stop container group:", error);
+    });
+
+    await del(SYNC_USER_KEY);
+    resetResyncFlag();
+    await publishSyncEvent({ type: "container_exited", reason: "Aborted by user" });
+
+    res.success(null);
   },
 };
