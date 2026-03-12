@@ -10,12 +10,6 @@ import * as repository from "@/features/searches/searches.repository.ts";
 import type { StoredSearch } from "@/features/searches/searches.types.ts";
 import { FREQUENCY_MS, RESULTS_TTL_SECONDS } from "./scheduler.constants.ts";
 import logger from "@/infra/logger/logger.ts";
-import {
-  SessionNotLoadedError,
-  FacebookSessionExpiredError,
-  FacebookRateLimitError,
-  GeocodingError,
-} from "@/shared/errors/errors.ts";
 
 const timers = new Map<string, ReturnType<typeof setInterval>>();
 const scheduledAt = new Map<string, number>();
@@ -25,22 +19,6 @@ const DATE_LISTED_TO_DAYS: Record<string, 1 | 7 | 30> = {
   "7d": 7,
   "30d": 30,
 };
-
-const ERROR_CODE_MAP: [new (...args: never[]) => Error, string][] = [
-  [SessionNotLoadedError, "SESSION_NOT_LOADED"],
-  [FacebookSessionExpiredError, "SESSION_EXPIRED"],
-  [FacebookRateLimitError, "RATE_LIMITED"],
-  [GeocodingError, "GEOCODING_ERROR"],
-];
-
-function errorToCode(error: unknown): string {
-  if (error instanceof Error) {
-    for (const [ErrorClass, code] of ERROR_CODE_MAP) {
-      if (error instanceof ErrorClass) return code;
-    }
-  }
-  return "UNKNOWN";
-}
 
 function searchToScrapeParams(search: StoredSearch): SearchMarketPlaceParams {
   const params: SearchMarketPlaceParams = {
@@ -108,7 +86,7 @@ async function executeTick(search: StoredSearch): Promise<void> {
       type: "failed",
       searchId: search.id,
       error: message,
-      errorCode: errorToCode(error),
+      errorName: error instanceof Error ? error.name : "Error",
     }).catch((e) => logger.error(`[scheduler] Failed to publish error event:`, e));
   }
 }
