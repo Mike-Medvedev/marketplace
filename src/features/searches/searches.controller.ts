@@ -52,6 +52,12 @@ export const SearchesController = {
     res.success(results);
   },
 
+  async handleExecuteSearch(req: Request<IdParams>, res: Response) {
+    const results = await service.executeSearch(req.params.id, req.user!.id);
+    logger.info(`Manual search execution completed: ${req.params.id} — ${results.listings.length} listings`);
+    res.success(results, 201);
+  },
+
   async handleSearchEvents(req: Request<IdParams>, res: Response) {
     const search = await service.getSearchById(req.params.id, req.user!.id);
     if (!search) throw new SearchNotFoundError(req.params.id);

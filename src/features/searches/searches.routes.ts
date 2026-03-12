@@ -77,6 +77,18 @@ searchesRouter.delete(
   SearchesController.handleDeleteSearch,
 );
 
+searchesRouter.post(
+  "/:id/execute",
+  {
+    operationId: "executeSearch",
+    params: searchIdParamsSchema,
+    response: SuccessSchema(searchRunResultsSchema),
+    responses: { 404: ErrorSchema },
+    summary: "Manually execute a saved search, creating a run with stored results",
+  },
+  SearchesController.handleExecuteSearch,
+);
+
 searchesRouter.get(
   "/:id/events",
   {

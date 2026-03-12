@@ -101,3 +101,16 @@ export async function getRunById(runId: string, searchId: string) {
     .limit(1);
   return run ?? null;
 }
+
+export async function createRun(
+  runId: string,
+  searchId: string,
+  redisResultKey: string,
+  listingCount: number,
+) {
+  const [run] = await db
+    .insert(searchRuns)
+    .values({ id: runId, searchId, redisResultKey, listingCount })
+    .returning();
+  return run!;
+}
