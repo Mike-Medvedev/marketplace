@@ -18,7 +18,7 @@ function searchToScrapeParams(search: StoredSearch): SearchMarketPlaceParams {
   const params: SearchMarketPlaceParams = {
     query: search.query,
     location: search.location,
-    pageCount: Math.ceil(search.listingsPerCheck / 24),
+    pageCount: search.listingsPerCheck,
   };
   if (search.minPrice != null) params.minPrice = search.minPrice;
   if (search.maxPrice != null) params.maxPrice = search.maxPrice;
@@ -42,27 +42,26 @@ export async function runSearch(search: StoredSearch): Promise<SearchRunResults>
   logger.info(`[runSearch] Executing "${search.query}" (${search.id})`);
 
   const { listings } = await searchMarketPlace(params, search.userId);
-  const capped = listings.slice(0, search.listingsPerCheck);
 
   const runId = randomUUID();
   const redisKey = resultsKey(search.id, runId);
-  await write(redisKey, JSON.stringify(capped), RESULTS_TTL_SECONDS);
+  await write(redisKey, JSON.stringify(listings), RESULTS_TTL_SECONDS);
 
-  await repository.createRun(runId, search.id, redisKey, capped.length);
+  await repository.createRun(runId, search.id, redisKey, listings.length);
   await repository.updateLastRun(search.id, new Date());
 
-  logger.info(`[runSearch] "${search.query}" completed — ${capped.length} listings stored`);
+  logger.info(`[runSearch] "${search.query}" completed — ${listings.length} listings stored`);
 
   await publishSearchEvent(search.id, {
     type: "completed",
     searchId: search.id,
     runId,
-    listingCount: capped.length,
+    listingCount: listings.length,
   });
 
   return {
     runId,
     executedAt: new Date(),
-    listings: capped,
+    listings,
   };
 }
