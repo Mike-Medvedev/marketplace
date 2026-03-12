@@ -14,7 +14,7 @@ const DATE_LISTED_TO_DAYS: Record<string, 1 | 7 | 30> = {
   "30d": 30,
 };
 
-function searchToScrapeParams(search: StoredSearch): SearchMarketPlaceParams {
+function toScrapeParams(search: StoredSearch): SearchMarketPlaceParams {
   const params: SearchMarketPlaceParams = {
     query: search.query,
     location: search.location,
@@ -32,14 +32,15 @@ function resultsKey(searchId: string, runId: string): string {
 }
 
 /**
- * Runs a search, stores results in Redis + DB, and publishes SSE events.
- * Shared by both the manual execute endpoint and the scheduler.
+ * Calls searchMarketPlace (the same scrape logic used everywhere),
+ * stores every listing it returns in Redis + DB, publishes SSE events.
  */
 export async function runSearch(search: StoredSearch): Promise<SearchRunResults> {
-  await publishSearchEvent(search.id, { type: "executing", searchId: search.id });
+  publishSearchEvent(search.id, { type: "executing", searchId: search.id })
+    .catch((e) => logger.error(`[runSearch] Failed to publish executing event:`, e));
 
-  const params = searchToScrapeParams(search);
-  logger.info(`[runSearch] Executing "${search.query}" (${search.id})`);
+  const params = toScrapeParams(search);
+  logger.info(`[runSearch] Executing "${search.query}" (${search.id}) — pageCount=${params.pageCount}`);
 
   const { listings } = await searchMarketPlace(params, search.userId);
 
@@ -52,16 +53,12 @@ export async function runSearch(search: StoredSearch): Promise<SearchRunResults>
 
   logger.info(`[runSearch] "${search.query}" completed — ${listings.length} listings stored`);
 
-  await publishSearchEvent(search.id, {
+  publishSearchEvent(search.id, {
     type: "completed",
     searchId: search.id,
     runId,
     listingCount: listings.length,
-  });
+  }).catch((e) => logger.error(`[runSearch] Failed to publish completed event:`, e));
 
-  return {
-    runId,
-    executedAt: new Date(),
-    listings,
-  };
+  return { runId, executedAt: new Date(), listings };
 }
