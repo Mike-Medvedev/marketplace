@@ -78,6 +78,17 @@ searchesRouter.delete(
 );
 
 searchesRouter.get(
+  "/:id/events",
+  {
+    operationId: "getSearchEvents",
+    params: searchIdParamsSchema,
+    responses: { 404: ErrorSchema },
+    summary: "SSE stream of real-time search execution events (executing, completed, failed)",
+  },
+  SearchesController.handleSearchEvents,
+);
+
+searchesRouter.get(
   "/:id/runs",
   {
     operationId: "getSearchRuns",
