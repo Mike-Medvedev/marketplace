@@ -1,83 +1,30 @@
-import { randomUUID } from "node:crypto";
-import { searchMarketPlace } from "@/features/scrape/scrape.service.ts";
-import type { SearchMarketPlaceParams } from "@/features/scrape/scrape.types.ts";
-import { write } from "@/infra/redis/redis.client.ts";
-import { db } from "@/infra/db/db.ts";
-import { searchRuns } from "@/infra/db/schema.ts";
+import { runSearch } from "@/features/searches/searches.executor.ts";
 import { notify } from "@/infra/notifications/notification.service.ts";
 import { publishSearchEvent } from "@/infra/redis/redis.pubsub.ts";
 import * as repository from "@/features/searches/searches.repository.ts";
 import type { StoredSearch } from "@/features/searches/searches.types.ts";
-import { FREQUENCY_MS, RESULTS_TTL_SECONDS } from "./scheduler.constants.ts";
+import { FREQUENCY_MS } from "./scheduler.constants.ts";
 import logger from "@/infra/logger/logger.ts";
 
 const timers = new Map<string, ReturnType<typeof setInterval>>();
 const scheduledAt = new Map<string, number>();
 
-const DATE_LISTED_TO_DAYS: Record<string, 1 | 7 | 30> = {
-  "24h": 1,
-  "7d": 7,
-  "30d": 30,
-};
-
-function searchToScrapeParams(search: StoredSearch): SearchMarketPlaceParams {
-  const params: SearchMarketPlaceParams = {
-    query: search.query,
-    location: search.location,
-    pageCount: Math.ceil(search.listingsPerCheck / 24),
-  };
-  if (search.minPrice != null) params.minPrice = search.minPrice;
-  if (search.maxPrice != null) params.maxPrice = search.maxPrice;
-  const days = DATE_LISTED_TO_DAYS[search.dateListed];
-  if (days) params.dateListedDays = days;
-  return params;
-}
-
-function resultsKey(searchId: string, runId: string): string {
-  return `search:${searchId}:results:${runId}`;
-}
-
 async function executeTick(search: StoredSearch): Promise<void> {
-  await publishSearchEvent(search.id, { type: "executing", searchId: search.id });
-
   try {
-    const params = searchToScrapeParams(search);
     logger.info(`[scheduler] Running search "${search.query}" (${search.id})`);
 
-    const { listings } = await searchMarketPlace(params, search.userId);
-
-    const capped = listings.slice(0, search.listingsPerCheck);
-
-    const runId = randomUUID();
-    const redisKey = resultsKey(search.id, runId);
-    await write(redisKey, JSON.stringify(capped), RESULTS_TTL_SECONDS);
-
-    await db.insert(searchRuns).values({
-      id: runId,
-      searchId: search.id,
-      redisResultKey: redisKey,
-      listingCount: capped.length,
-    });
-
-    await repository.updateLastRun(search.id, new Date());
+    const results = await runSearch(search);
 
     await notify(
       search.notificationType,
       search.notificationTarget,
       search.query,
-      capped.map((l) => ({ id: l.id, title: l.title, price: l.price, url: l.url })),
+      results.listings.map((l) => ({ id: l.id, title: l.title, price: l.price, url: l.url })),
     );
 
     logger.info(
-      `[scheduler] Search "${search.query}" completed — ${capped.length} listings stored & notified`,
+      `[scheduler] Search "${search.query}" completed — ${results.listings.length} listings stored & notified`,
     );
-
-    await publishSearchEvent(search.id, {
-      type: "completed",
-      searchId: search.id,
-      runId,
-      listingCount: capped.length,
-    });
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     logger.error(`[scheduler] Search ${search.id} failed:`, error);

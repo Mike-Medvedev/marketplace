@@ -8,6 +8,7 @@ import {
   isScheduled,
   getNextRunAt,
 } from "@/features/scheduler/scheduler.service.ts";
+import { runSearch } from "./searches.executor.ts";
 import { SearchNotFoundError } from "@/shared/errors/errors.ts";
 import type { ActiveSearch, StoredSearch, CreateSearchBody, UpdateSearchBody, SearchRun, SearchRunResults } from "./searches.types.ts";
 
@@ -86,4 +87,10 @@ export async function getSearchRunResults(
     executedAt: run.executedAt,
     listings,
   };
+}
+
+export async function executeSearch(searchId: string, userId: string): Promise<SearchRunResults> {
+  const search = await repository.getSearchById(searchId, userId);
+  if (!search) throw new SearchNotFoundError(searchId);
+  return runSearch(search);
 }
