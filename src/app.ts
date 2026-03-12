@@ -10,6 +10,7 @@ import { searchesRouter } from "@/features/searches/searches.routes.ts";
 import { usersRouter } from "@/features/users/users.routes.ts";
 import { webhookRouter } from "@/features/webhooks/webhooks.routes.ts";
 import { syncRouter } from "@/features/sync/sync.routes.ts";
+import { facebookRouter } from "@/features/facebook/facebook.routes.ts";
 import packageJson from "../package.json" with { type: "json" };
 
 const app = express();
@@ -25,6 +26,7 @@ app.use("/webhook", webhookRouter);
 
 app.use("/api/v1", validateUser, scrapeRouter);
 app.use("/api/v1", validateUser, syncRouter);
+app.use("/api/v1", validateUser, facebookRouter);
 app.use("/api/v1/searches", validateUser, searchesRouter);
 app.use("/api/v1/users", validateUser, usersRouter);
 
