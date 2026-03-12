@@ -2,7 +2,7 @@ import { setSession } from "@/features/facebook/facebook.repository.ts";
 import { publishSyncEvent } from "@/infra/redis/redis.pubsub.ts";
 import { read } from "@/infra/redis/redis.client.ts";
 import { SYNC_USER_KEY } from "@/features/sync/sync.constants.ts";
-import { getContainerGroupIp } from "@/features/sync/sync.aci.ts";
+import { getContainerGroupHost } from "@/features/sync/sync.aci.ts";
 import logger from "@/infra/logger/logger.ts";
 import type { Request, Response } from "express";
 
@@ -65,8 +65,8 @@ export const WebhooksController = {
       return;
     }
 
-    const containerIp = await getContainerGroupIp();
-    logger.info(`[sync-context] Returning sync context for user ${userId}, containerIp: ${containerIp}`);
-    res.success({ userId, containerIp });
+    const containerHost = await getContainerGroupHost();
+    logger.info(`[sync-context] Returning sync context for user ${userId}, containerHost: ${containerHost}`);
+    res.success({ userId, containerHost });
   },
 };
