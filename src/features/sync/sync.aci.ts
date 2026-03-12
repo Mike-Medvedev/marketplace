@@ -17,6 +17,14 @@ export async function getContainerGroupIp(): Promise<string | null> {
   return group.ipAddress?.ip ?? null;
 }
 
+export async function stopContainerGroup(): Promise<void> {
+  logger.info(
+    `[aci] Stopping container group "${env.ACI_CONTAINER_GROUP_NAME}" in "${env.AZURE_RESOURCE_GROUP}"`,
+  );
+  await client.containerGroups.stop(env.AZURE_RESOURCE_GROUP, env.ACI_CONTAINER_GROUP_NAME);
+  logger.info("[aci] Container group stopped");
+}
+
 export async function startContainerGroup(): Promise<void> {
   logger.info(
     `[aci] Starting container group "${env.ACI_CONTAINER_GROUP_NAME}" in "${env.AZURE_RESOURCE_GROUP}"`,

@@ -13,6 +13,10 @@ import logger from "@/infra/logger/logger.ts";
 
 let resyncInProgress = false;
 
+export function resetResyncFlag(): void {
+  resyncInProgress = false;
+}
+
 /**
  * Automated resync triggered when a scheduled search encounters
  * a FacebookSessionExpiredError. Spins up the ACI Playwright container

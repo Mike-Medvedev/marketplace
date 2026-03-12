@@ -174,3 +174,10 @@ export class NotificationError extends Error {
     this.name = "NotificationError";
   }
 }
+
+export class NoActiveSyncError extends Error {
+  constructor() {
+    super("No sync is currently in progress");
+    this.name = "NoActiveSyncError";
+  }
+}

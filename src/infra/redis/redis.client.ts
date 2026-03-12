@@ -10,6 +10,10 @@ export async function read(key: string): Promise<string | null> {
   return redis.get(key);
 }
 
+export async function del(key: string): Promise<void> {
+  await redis.del(key);
+}
+
 export async function write(key: string, value: string, ttlSeconds?: number): Promise<void> {
   if (ttlSeconds && ttlSeconds > 0) {
     await redis.set(key, value, "EX", ttlSeconds);

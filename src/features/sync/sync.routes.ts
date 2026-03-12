@@ -16,3 +16,13 @@ syncRouter.get(
   },
   SyncController.beginIdentitySync,
 );
+
+syncRouter.post(
+  "/sync/abort",
+  {
+    operationId: "abortSync",
+    summary: "Abort an in-progress identity sync — stops the ACI container and cleans up",
+    skipValidation: true,
+  },
+  SyncController.abortSync,
+);
