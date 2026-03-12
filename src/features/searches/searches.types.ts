@@ -90,7 +90,7 @@ export type SearchRunResults = z.infer<typeof searchRunResultsSchema>;
 export type SearchEvent =
   | { type: "executing"; searchId: string }
   | { type: "completed"; searchId: string; runId: string; listingCount: number }
-  | { type: "failed"; searchId: string; error: string; errorCode: string };
+  | { type: "failed"; searchId: string; error: string; errorName: string };
 
 export type IdParams = { id: string };
 export type RunIdParams = { id: string; runId: string };
