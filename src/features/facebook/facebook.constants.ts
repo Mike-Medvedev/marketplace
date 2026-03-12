@@ -11,6 +11,10 @@ export const FB_QUERIES = {
     friendly_name: "MarketplacePDPContainerQuery",
     doc_id: "34344688261796183",
   },
+  ROOT_QUERY: {
+    friendly_name: "CometMarketplaceRootQuery",
+    doc_id: "24278083268459479",
+  },
 } as const;
 
 export const REQUEST_SPECIFIC = {
@@ -28,6 +32,11 @@ export const REQUEST_SPECIFIC = {
     __req: "1v",
     fb_api_req_friendly_name: FB_QUERIES.DESCRIPTION.friendly_name,
     doc_id: FB_QUERIES.DESCRIPTION.doc_id,
+  },
+  ROOT_QUERY: {
+    __req: "1r",
+    fb_api_req_friendly_name: FB_QUERIES.ROOT_QUERY.friendly_name,
+    doc_id: FB_QUERIES.ROOT_QUERY.doc_id,
   },
 } as const;
 

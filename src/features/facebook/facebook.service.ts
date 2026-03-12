@@ -65,8 +65,8 @@ export async function isSessionValid(userId: string): Promise<boolean> {
   try {
     const body = new URLSearchParams({
       ...session.body,
-      ...REQUEST_SPECIFIC.SEARCH,
-      variables: JSON.stringify({ count: 0, cursor: null }),
+      ...REQUEST_SPECIFIC.ROOT_QUERY,
+      variables: "{}",
     });
 
     const response = await fetch(FB_GRAPHQL_URL, {
@@ -74,7 +74,7 @@ export async function isSessionValid(userId: string): Promise<boolean> {
       headers: {
         ...session.headers,
         cookie: session.cookie,
-        "x-fb-friendly-name": REQUEST_SPECIFIC.SEARCH.fb_api_req_friendly_name,
+        "x-fb-friendly-name": REQUEST_SPECIFIC.ROOT_QUERY.fb_api_req_friendly_name,
         "x-fb-lsd": session.body.lsd ?? "",
       },
       body: body.toString(),
