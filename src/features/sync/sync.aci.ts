@@ -9,6 +9,14 @@ const client = new ContainerInstanceManagementClient(credential, env.AZURE_SUBSC
 
 const TERMINAL_STATES = new Set(["Stopped", "Terminated", "Failed", "Succeeded"]);
 
+export async function getContainerGroupIp(): Promise<string | null> {
+  const group = await client.containerGroups.get(
+    env.AZURE_RESOURCE_GROUP,
+    env.ACI_CONTAINER_GROUP_NAME,
+  );
+  return group.ipAddress?.ip ?? null;
+}
+
 export async function startContainerGroup(): Promise<void> {
   logger.info(
     `[aci] Starting container group "${env.ACI_CONTAINER_GROUP_NAME}" in "${env.AZURE_RESOURCE_GROUP}"`,
