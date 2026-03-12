@@ -7,7 +7,7 @@ export const ListingsModel = z.object({
       url: z.string(),
       price: z.string(),
       title: z.string(),
-      location: z.string(),
+      location: z.record(z.string(), z.unknown()).nullable(),
       primaryPhotoUri: z.string(),
     }),
   ),
