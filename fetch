@@ -1,0 +1,28 @@
+fetch("https://www.facebook.com/api/graphql/", {
+  "headers": {
+    "accept": "*/*",
+    "accept-language": "en-US,en;q=0.9",
+    "cache-control": "no-cache",
+    "content-type": "application/x-www-form-urlencoded",
+    "pragma": "no-cache",
+    "priority": "u=1, i",
+    "sec-ch-prefers-color-scheme": "dark",
+    "sec-ch-ua": "\"Not:A-Brand\";v=\"99\", \"Google Chrome\";v=\"145\", \"Chromium\";v=\"145\"",
+    "sec-ch-ua-full-version-list": "\"Not:A-Brand\";v=\"99.0.0.0\", \"Google Chrome\";v=\"145.0.7632.117\", \"Chromium\";v=\"145.0.7632.117\"",
+    "sec-ch-ua-mobile": "?0",
+    "sec-ch-ua-model": "\"\"",
+    "sec-ch-ua-platform": "\"macOS\"",
+    "sec-ch-ua-platform-version": "\"15.7.2\"",
+    "sec-fetch-dest": "empty",
+    "sec-fetch-mode": "cors",
+    "sec-fetch-site": "same-origin",
+    "x-asbd-id": "359341",
+    "x-fb-friendly-name": "CometMarketplaceRootQuery",
+    "x-fb-lsd": "e0gGNIjHn41LuPDjxTT5Xg"
+  },
+  "referrer": "https://www.facebook.com/",
+  "body": "av=100001693381379&__aaid=0&__user=100001693381379&__a=1&__req=1r&__hs=20524.HYP%3Acomet_pkg.2.1...0&dpr=2&__ccg=EXCELLENT&__rev=1035024834&__s=0wcnv5%3A8mhnjg%3Aam89ew&__hsi=7616370896841345277&__dyn=7xeUjGUW13xt0mUyEqxemh0MBwCwWwIxu13wFwhUKbgS3q2ibwNw9G2Saw8i2S1DwUx60GE5O0BU2_CxS320qa321Rwwwqo462mcwfG12wOx62G5Usw9m1YwBgK7o6C1uwoE4G17yovwRwlE-U2exi4UaEW2G1jwUBwJK14xm3y3aexfxmu3W3rwxwjFovUaU3VwLyEbUGdG1QwVwwwOg2ZwhEkxebwHwKG4UrwFg2fwxyo566k1fxC13xecwBwUU-4rwEKufxamEbbxG1fBG2-1mwto46fwk83KwHwOyUqxG0K83jw&__csr=gcAeMjMwInfbf5iNc98n2lEQmDR6gCwDb99QySyEZlNtmzmBbnb9shfcC_i9innsy9iTHuBRbjnaJGLGByGQuZ4AZugWqRiWgzAgwBqAzmhRALAFWiuppfJCARiWBqUFahbiA8Ka-8xF2pXGQWLjpqCBAjhQuirxfLBG9hGVaHyXCGniZ6Bz9KmFUy8LK6bKuEKuByUx5xx7GaUK3iuQUS499UO58gz4qF8GGxdxCmEhyEC2NafypA7bGfhQqeBAnz8OEO58lAUnyoOayUSayECl3ojXUy5uq2u26UFabKnUDwMzoymby9V8GEG8yoym2e5Ea8hKi7ax-699EeomAwLQ2l1Wq22U4O5UgwiU5a2m48mAxi4pEhxa5FUeo9osCwg8-49ogwjE4W3C78hwio6qcxO1Xzolw-waKFUDG1RVuEboGUqxeqbzocFUnAw_xeew5AwTw5cw7gwoo3JUsxu0yEmwuFojgmQ2q15G11w8_Po2hgaEWKewqU3RG2ubzrwyK1LAyUepS0FotwYwuUbUaE0ieG9zEiLw1qh00ENy81E42-09gwbW1bhU0w906Xjw0wDwfa00wtohw0pPU36ws81P45EC5oggcUlwCw4H8E4pwVw3688OiG0YO020U7Jw4bw15K6C1gwpE0yS0jowlo0jDw1fgE0UUq9gS7EeQh0joS0dXwhU0FSsw1_83Qwhaw55gtw6COw1gho1jE0fjE4OaO3E5R09e3y0my0o20mG4o4e04GA04do4Qw34w2IEbo3Ug33Aw2nE7q4y0149yU&__hsdp=g5wxAx0v82gAwq8gAw828hNkYv1aG5Qx22GvhcQG1j6gTcA4OgWg4NBNY4phOFgP9i5O8OOqkWLb7aIGql36hidDVl8yjAOcgFa7J8pNO2fqpd8Bcy8PtCyFF3QNRMlNpMGH8KACnpaayi6bsggJy0g9KMnarSJF2hijn2dOmH6acRaGhy5iqC2cNlR7fAijWj_PnyG-OaaorBmNepamqDmbjBc842QhCzfLjCl6Hy1uByog58b2oZ4iqkwGVRAKWQA9JqGmfW52IGxh2VxUoABAzHabq5-VEC9O3QahyF94Gpy2ambJ_Q8oKbz3N8HBxu7oKUyfK59oy4ESbyFQso4aBKCiaDKSv4xa8UiwOh8aock8x6ikylHjxybwHy4eyEpAxyi5FVEGE5a4oaElgObAxG2CjwCGq2WUG17ByE5K10Gh0QwNwgaw9Jo9UO2p1et1O0CUjxWeBU28whA3O3y0BPBo2wGE5a1dweW1Wy8TzodoqDwxAwww-xK0Poj-A1lwloW19yoC2648jxlK0kG5oiwjU5e16w43wr8bU4C2i0oCi12wcO0IU7S10wxwbm782Ng7m0jy6U2twXw2QFE27wywb-1VwMw6ywdW1JwhE18o2Awkoc84C26ezEaU7a3W04yo1SU8U3vway0j20z81bU8U0Fm1Vwaabw6mwXw7iwoE9E3dwio0XG0Q8nw4ow4Mw4TwdW0CE2Fw2r8&__hblp=0DLJ0ZxmXwjU5Bxy3C0WobQmh0Zo20wbi3i10Dxyt16dwg86x3pUG1tw8bBwkax2ewgE2Dwce1sCxqm3-3Gex7CzUsz8lxy9BxS1hK3i48fU7m2C2CU46h3ojyU4S1SzEK9zoa8aU6W17yUvwFwceaw9-i1DwgU2iyawDwQKfy8swXG1tghxWeBU2gw4xwUwtoaVp8-4o1w86a1dzE8E8p852ewZy8tw8i4_G1mwlolw2iU8EW3O0m61CVEb84C2i1Xwuo5uEe98aKcy8lwbqcxacw8q1Zy8aoa9E5S1nyFEbEoxC1rwVwXxq1ow823e4uGg3xwcC0VE3SwFzpE6Wq4o8E2fwLwuoc83Ywam3C4o26yU6S16w4bxm1-wnEowMwio8oWexu4U2NwbO0ZLg3uw4pwdu0oO1ewzxum0B8K22ew9C361Zw_wg8rws8c83mwDwzw5zwlo2BwOG1SG1Pwxz8K6UfU5C0xU5y3uU6i0BE2IAxe484y6oG6U3dwFx-0qW0GU5q0gei0Q8nwg988U7S3210w4NwgU2NyE4i2nDxK12xt0DG3W5UK0Do3ABxK1qUaU3sw&__sjsp=g5wxAx0v82gAwq8gAMuky4slkAv2k9axt68wGDQjdawJ2kp4R7j91cAeA1cpsv16ksGkcOkKyJEOO4icHONOGGFFoWlbJypl8TbAFAeFayapak_N4G2bh9t8BeGmaSqaCAfj7oF0B415396Ke-i9RpWlN1RwDAox0WGU8ryoCGiwwxW6BgS4XDx6mczoB0ioCbwZAojKayk7KBwholih8-bDx11qm1qwhp22SA48vwQyk981KwlE14U2lwRga8aU4a06880BS0sXzo&__comet_req=15&fb_dtsg=NAfutsaZEZFh1FEmPazHc91pAf4x7ntrnWGFCnprMq6qMjjJ8WNTzMQ%3A43%3A1772077753&jazoest=25623&lsd=e0gGNIjHn41LuPDjxTT5Xg&__spin_r=1035024834&__spin_b=trunk&__spin_t=1773324538&__crn=comet.fbweb.CometHomeRoute&fb_api_caller_class=RelayModern&fb_api_req_friendly_name=CometMarketplaceRootQuery&server_timestamps=true&variables=%7B%7D&doc_id=24278083268459479",
+  "method": "POST",
+  "mode": "cors",
+  "credentials": "include"
+});
