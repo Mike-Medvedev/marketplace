@@ -56,11 +56,14 @@ export const WebhooksController = {
   },
 
   async handleSyncContext(_req: Request, res: Response) {
+    logger.info("[sync-context] Webhook received");
     const userId = await read(SYNC_USER_KEY);
     if (!userId) {
+      logger.warn("[sync-context] No active sync session found in Redis");
       res.error(404, new Error("No active sync session"));
       return;
     }
+    logger.info(`[sync-context] Returning sync context for user ${userId}`);
     res.success({ userId });
   },
 };
