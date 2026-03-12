@@ -177,8 +177,12 @@ async function fetchOnePage(
     return { listings: [], nextCursor: null };
   }
 
-  logger.info(`[fetchOnePage] Fetched ${feedUnits.edges.length} listings from marketplace`);
-  const rawListings = feedUnits.edges.map((edge) => edge.node.listing);
+  const rawListings = feedUnits.edges
+    .map((edge) => edge.node.listing)
+    .filter((listing): listing is RawListing => listing != null);
+  logger.info(
+    `[fetchOnePage] Fetched ${rawListings.length} listings from ${feedUnits.edges.length} edges`,
+  );
   const listings = rawListings.map(extractListingDetails);
   const nextCursor = feedUnits.page_info?.end_cursor ?? null;
 
