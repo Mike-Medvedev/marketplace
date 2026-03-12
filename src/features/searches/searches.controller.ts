@@ -1,8 +1,13 @@
 import logger from "@/infra/logger/logger.ts";
 import { SearchNotFoundError } from "@/shared/errors/errors.ts";
+import { subscribeSearchEvents } from "@/infra/redis/redis.pubsub.ts";
 import * as service from "./searches.service.ts";
-import type { IdParams, RunIdParams } from "./searches.types.ts";
+import type { IdParams, RunIdParams, SearchEvent } from "./searches.types.ts";
 import type { Request, Response } from "express";
+
+function sendSSE(res: Response, data: SearchEvent): void {
+  res.write(`data: ${JSON.stringify(data)}\n\n`);
+}
 
 export const SearchesController = {
   async handleGetSearches(req: Request, res: Response) {
@@ -45,5 +50,25 @@ export const SearchesController = {
     const results = await service.getSearchRunResults(req.params.id, req.params.runId, req.user!.id);
     if (!results) throw new SearchNotFoundError(req.params.runId);
     res.success(results);
+  },
+
+  async handleSearchEvents(req: Request<IdParams>, res: Response) {
+    const search = await service.getSearchById(req.params.id, req.user!.id);
+    if (!search) throw new SearchNotFoundError(req.params.id);
+
+    res.writeHead(200, {
+      "Content-Type": "text/event-stream",
+      "Cache-Control": "no-cache",
+      Connection: "keep-alive",
+    });
+
+    const unsubscribe = subscribeSearchEvents(search.id, (event) => {
+      sendSSE(res, event);
+    });
+
+    req.on("close", () => {
+      logger.info(`[search-events] Client disconnected from search ${search.id}`);
+      unsubscribe();
+    });
   },
 };
