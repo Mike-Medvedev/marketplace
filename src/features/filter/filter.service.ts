@@ -10,7 +10,7 @@ This is a high-stakes task — every listing you incorrectly omit is a missed op
 
 Guidelines:
 - You will receive a JSON array of marketplace listings and the user's filtering criteria.
-- Return only the listings that match the criteria, preserving their exact JSON structure.
+- Return only the IDs of listings that match the criteria.
 - ALWAYS err on the side of inclusion. Only exclude a listing if the title or available data makes it obvious the item does not meet the criteria.
 - Ambiguous listings (e.g. missing year, unclear model) should be INCLUDED — let the buyer decide.
 - Price alone is not a reason to exclude unless the criteria explicitly set a price threshold.
@@ -45,6 +45,8 @@ export async function filterListings(
   }
 
   const parsed = ListingsModel.parse(JSON.parse(output_text ?? "{}"));
-  logger.info(`[filterListings] AI returned ${parsed.filtered.length} of ${listings.length} listings`);
-  return parsed.filtered as unknown as Omit<MarketplaceListing, "photos" | "description">[];
+  const keepIds = new Set(parsed.filtered.map((l) => l.id));
+  const result = listings.filter((l) => keepIds.has(l.id));
+  logger.info(`[filterListings] AI kept ${result.length} of ${listings.length} listings`);
+  return result;
 }
