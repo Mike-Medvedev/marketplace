@@ -11,8 +11,7 @@ function searchChannel(searchId: string): string {
 
 export type SyncEvent =
   | { type: "session_refreshed" }
-  | { type: "needs_login"; novncUrl: string }
-  | { type: "status_update"; message: string; step?: string; userId?: string }
+  | { type: "status_update"; message: string; step: string; userId?: string; novncUrl?: string }
   | { type: "container_exited"; reason: string };
 
 /**

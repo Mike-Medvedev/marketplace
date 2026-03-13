@@ -68,11 +68,10 @@ export async function triggerAutoResync(userId: string): Promise<void> {
           cleanup();
           resolve();
         } else if (event.type === "status_update") {
-          logger.info(
-            `[auto-resync] Playwright status${event.step ? ` (${event.step})` : ""}: ${event.message}`,
-          );
-        } else if (event.type === "needs_login") {
-          await handleNeedsHumanLogin();
+          logger.info(`[auto-resync] [${event.step}] ${event.message}`);
+          if (event.step === "needs_login") {
+            await handleNeedsHumanLogin();
+          }
         } else if (event.type === "container_exited") {
           logger.error(
             `[auto-resync] Container crashed: ${event.reason}. Next scheduled search will retry.`,
