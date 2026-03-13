@@ -1,0 +1,30 @@
+When unselecting a option from menu it disappears
+
+Results page skeleton loader is not matching the new aligned UI 
+
+Perform Execute right away when search is scheduled and have listings fetching in background and displayed in runs right away 
+
+Improve colors to be brighter its way to dark, especially background 
+
+Two identical  searches should not be able to be scheduled only if the search criteria are literally exactly the same 
+
+ Update magic link to not use localhost anymore
+
+
+A new account should have a mini tutorial pointing them to click sync before they can run a search.
+
+
+Setup refresh token for sup abase auth 
+
+
+Why is azure container instances still running it should turn off and beginStart() in my backend
+
+What if I create an option that creates a bunch of searches covering the entire lower US. 
+
+Could this app be an insane search across all marketplaces wher you give it a prompt and/or a photo(s) and it finds items that your looking for based n that? Using ai 
+
+
+When new user logs in, screen flashes previous UI state, no bueno
+
+
+Since the initial create search executes an actual search we need to show that its happening ux /ui 
