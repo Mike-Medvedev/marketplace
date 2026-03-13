@@ -122,6 +122,13 @@ export class SearchNotFoundError extends Error {
   }
 }
 
+export class DuplicateSearchError extends Error {
+  constructor(query: string, location: string) {
+    super(`A search with identical criteria already exists for "${query}" in "${location}"`);
+    this.name = "DuplicateSearchError";
+  }
+}
+
 export class UnauthorizedError extends Error {
   constructor(message: string = "Authentication required") {
     super(message);

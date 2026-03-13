@@ -1,5 +1,6 @@
 import {
   DatabaseResourceNotFoundError,
+  DuplicateSearchError,
   FacebookRateLimitError,
   FacebookSessionExpiredError,
   FetchListingDescriptionError,
@@ -44,6 +45,10 @@ const errorHandler: ErrorRequestHandler = function (
   if (error instanceof SearchNotFoundError) {
     logger.warn(error.message);
     return res.error(404, error);
+  }
+  if (error instanceof DuplicateSearchError) {
+    logger.warn(error.message);
+    return res.error(409, error);
   }
   if (error instanceof SessionNotLoadedError) {
     logger.warn(error.message);

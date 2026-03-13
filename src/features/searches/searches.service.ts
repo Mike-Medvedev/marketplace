@@ -9,7 +9,7 @@ import {
   getNextRunAt,
 } from "@/features/scheduler/scheduler.service.ts";
 import { runSearch } from "./searches.executor.ts";
-import { SearchNotFoundError } from "@/shared/errors/errors.ts";
+import { SearchNotFoundError, DuplicateSearchError } from "@/shared/errors/errors.ts";
 import type { ActiveSearch, StoredSearch, CreateSearchBody, UpdateSearchBody, SearchRun, SearchRunResults } from "./searches.types.ts";
 
 function enrichWithScheduleState(search: StoredSearch): ActiveSearch {
@@ -31,12 +31,37 @@ export async function getSearchById(id: string, userId: string): Promise<ActiveS
 }
 
 export async function createSearch(userId: string, body: CreateSearchBody): Promise<ActiveSearch> {
+  const duplicate = await repository.findDuplicate(userId, {
+    query: body.query,
+    location: body.location,
+    minPrice: body.minPrice ?? 0,
+    maxPrice: body.maxPrice ?? null,
+    dateListed: body.dateListed,
+    prompt: body.prompt ?? null,
+  });
+  if (duplicate) throw new DuplicateSearchError(body.query, body.location);
+
   const search = await repository.createSearch(userId, body);
   scheduleSearch(search);
   return enrichWithScheduleState(search);
 }
 
 export async function updateSearch(id: string, userId: string, body: UpdateSearchBody): Promise<ActiveSearch | null> {
+  const existing = await repository.getSearchById(id, userId);
+  if (!existing) return null;
+
+  const merged = {
+    query: body.query ?? existing.query,
+    location: body.location ?? existing.location,
+    minPrice: body.minPrice ?? existing.minPrice,
+    maxPrice: body.maxPrice !== undefined ? body.maxPrice : existing.maxPrice,
+    dateListed: body.dateListed ?? existing.dateListed,
+    prompt: body.prompt !== undefined ? body.prompt : existing.prompt,
+  };
+
+  const duplicate = await repository.findDuplicate(userId, merged, id);
+  if (duplicate) throw new DuplicateSearchError(merged.query, merged.location);
+
   const search = await repository.updateSearch(id, userId, body);
   if (search) {
     rescheduleSearch(search);
