@@ -26,6 +26,35 @@ export const WebhooksController = {
     res.success(null);
   },
 
+  async handleStatusUpdate(req: Request, res: Response) {
+    const { message, step, userId } = req.body;
+    if (typeof message !== "string" || !message.trim()) {
+      logger.warn("[status-update] Request missing message");
+      res.error(400, new Error("Missing message"));
+      return;
+    }
+
+    const activeUserId = await read(SYNC_USER_KEY);
+    if (!activeUserId) {
+      logger.warn("[status-update] No active sync session found in Redis");
+      res.error(404, new Error("No active sync session"));
+      return;
+    }
+
+    const resolvedUserId = typeof userId === "string" && userId.trim() ? userId : activeUserId;
+    logger.info(
+      `[status-update] ${step ? `[${step}] ` : ""}${message} (user ${resolvedUserId})`,
+    );
+    const trimmedStep = typeof step === "string" && step.trim() ? step.trim() : null;
+    await publishSyncEvent({
+      type: "status_update",
+      message: message.trim(),
+      ...(trimmedStep ? { step: trimmedStep } : {}),
+      userId: resolvedUserId,
+    });
+    res.success(null);
+  },
+
   async handleContainerExited(req: Request, res: Response) {
     const { reason } = req.body;
     const exitReason = typeof reason === "string" ? reason : "Unknown error";

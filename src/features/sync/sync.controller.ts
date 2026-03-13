@@ -70,6 +70,16 @@ export const SyncController = {
         } else if (event.type === "needs_login") {
           logger.info("[sync] Human login required, forwarding noVNC URL to client");
           sendSSE(res, { status: "needs_login", novncUrl: event.novncUrl });
+        } else if (event.type === "status_update") {
+          logger.info(
+            `[sync] Forwarding Playwright status update${event.step ? ` (${event.step})` : ""}: ${event.message}`,
+          );
+          sendSSE(res, {
+            status: "status_update",
+            message: event.message,
+            step: event.step,
+            userId: event.userId,
+          });
         } else if (event.type === "container_exited") {
           logger.warn(`[sync] Container exited: ${event.reason}`);
           sendSSE(res, { status: "container_exited", reason: event.reason });
