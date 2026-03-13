@@ -1,7 +1,43 @@
 import { db } from "@/infra/db/db.ts";
 import { searches, searchRuns } from "@/infra/db/schema.ts";
-import { eq, and, desc } from "drizzle-orm";
+import { eq, and, desc, isNull, ne } from "drizzle-orm";
+import type { searches as SearchesTable } from "@/infra/db/schema.ts";
 import type { StoredSearch, CreateSearchBody, UpdateSearchBody } from "./searches.types.ts";
+
+type SearchCriteria = Pick<
+  typeof SearchesTable.$inferSelect,
+  "query" | "location" | "minPrice" | "maxPrice" | "dateListed" | "prompt"
+>;
+
+export async function findDuplicate(
+  userId: string,
+  criteria: SearchCriteria,
+  excludeId?: string,
+): Promise<StoredSearch | null> {
+  const conditions = [
+    eq(searches.userId, userId),
+    eq(searches.query, criteria.query),
+    eq(searches.location, criteria.location),
+    eq(searches.minPrice, criteria.minPrice),
+    eq(searches.dateListed, criteria.dateListed),
+    criteria.maxPrice != null
+      ? eq(searches.maxPrice, criteria.maxPrice)
+      : isNull(searches.maxPrice),
+    criteria.prompt != null
+      ? eq(searches.prompt, criteria.prompt)
+      : isNull(searches.prompt),
+  ];
+
+  if (excludeId) conditions.push(ne(searches.id, excludeId));
+
+  const [match] = await db
+    .select()
+    .from(searches)
+    .where(and(...conditions))
+    .limit(1);
+
+  return match ?? null;
+}
 
 export async function getAllSearches(userId: string): Promise<StoredSearch[]> {
   return db.select().from(searches).where(eq(searches.userId, userId));
