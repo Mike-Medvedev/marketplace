@@ -28,6 +28,16 @@ webhookRouter.post(
 );
 
 webhookRouter.post(
+  "/status-update",
+  {
+    operationId: "webhookStatusUpdate",
+    summary: "Playwright container sends sync progress updates for SSE clients",
+    skipValidation: true,
+  },
+  WebhooksController.handleStatusUpdate,
+);
+
+webhookRouter.post(
   "/container-exited",
   {
     operationId: "webhookContainerExited",

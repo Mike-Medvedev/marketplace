@@ -67,6 +67,10 @@ export async function triggerAutoResync(userId: string): Promise<void> {
           logger.info(`[auto-resync] Session auto-refreshed, resumed ${resumed} searches`);
           cleanup();
           resolve();
+        } else if (event.type === "status_update") {
+          logger.info(
+            `[auto-resync] Playwright status${event.step ? ` (${event.step})` : ""}: ${event.message}`,
+          );
         } else if (event.type === "needs_login") {
           await handleNeedsHumanLogin();
         } else if (event.type === "container_exited") {
