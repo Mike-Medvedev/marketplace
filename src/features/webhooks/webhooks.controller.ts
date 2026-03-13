@@ -13,24 +13,16 @@ export const WebhooksController = {
     res.success(null);
   },
 
-  async handleNeedsLogin(req: Request, res: Response) {
-    logger.info("[needs-login] Webhook received");
-    const { novncUrl } = req.body;
-    if (!novncUrl) {
-      logger.warn("[needs-login] Request missing novncUrl");
-      res.error(400, new Error("Missing novncUrl"));
-      return;
-    }
-    logger.info(`[needs-login] Human login required, noVNC: ${novncUrl}`);
-    await publishSyncEvent({ type: "needs_login", novncUrl });
-    res.success(null);
-  },
-
   async handleStatusUpdate(req: Request, res: Response) {
-    const { message, step, userId } = req.body;
+    const { message, step, userId, novncUrl } = req.body;
     if (typeof message !== "string" || !message.trim()) {
       logger.warn("[status-update] Request missing message");
       res.error(400, new Error("Missing message"));
+      return;
+    }
+    if (typeof step !== "string" || !step.trim()) {
+      logger.warn("[status-update] Request missing step");
+      res.error(400, new Error("Missing step"));
       return;
     }
 
@@ -42,15 +34,14 @@ export const WebhooksController = {
     }
 
     const resolvedUserId = typeof userId === "string" && userId.trim() ? userId : activeUserId;
-    logger.info(
-      `[status-update] ${step ? `[${step}] ` : ""}${message} (user ${resolvedUserId})`,
-    );
-    const trimmedStep = typeof step === "string" && step.trim() ? step.trim() : null;
+    logger.info(`[status-update] [${step}] ${message} (user ${resolvedUserId})`);
+
     await publishSyncEvent({
       type: "status_update",
       message: message.trim(),
-      ...(trimmedStep ? { step: trimmedStep } : {}),
+      step: step.trim(),
       userId: resolvedUserId,
+      ...(typeof novncUrl === "string" && novncUrl.trim() ? { novncUrl: novncUrl.trim() } : {}),
     });
     res.success(null);
   },

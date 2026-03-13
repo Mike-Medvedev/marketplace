@@ -18,16 +18,6 @@ webhookRouter.post(
 );
 
 webhookRouter.post(
-  "/needs-login",
-  {
-    operationId: "webhookNeedsLogin",
-    summary: "Playwright container signals that human login is required",
-    skipValidation: true,
-  },
-  WebhooksController.handleNeedsLogin,
-);
-
-webhookRouter.post(
   "/status-update",
   {
     operationId: "webhookStatusUpdate",
