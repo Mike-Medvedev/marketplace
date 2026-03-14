@@ -1,15 +1,9 @@
 import { isSessionValid } from "@/features/facebook/facebook.service.ts";
-import { setSession } from "@/features/facebook/facebook.repository.ts";
 import { resumeAllSearches } from "@/features/searches/searches.repository.ts";
-import {
-  subscribeSyncEvents,
-  publishSyncEvent,
-  type SyncEvent,
-} from "@/infra/redis/redis.pubsub.ts";
-import { read, write, del } from "@/infra/redis/redis.client.ts";
-import { startContainerGroup, stopContainerGroup, pollContainerState } from "./sync.aci.ts";
+import { performSync } from "./sync.playwright.ts";
 import { resetResyncFlag } from "./sync.service.ts";
 import { SYNC_TIMEOUT_MS, SYNC_USER_KEY } from "./sync.constants.ts";
+import { write, read, del } from "@/infra/redis/redis.client.ts";
 import { NoActiveSyncError } from "@/shared/errors/errors.ts";
 import logger from "@/infra/logger/logger.ts";
 import type { Request, Response } from "express";
@@ -37,105 +31,70 @@ export const SyncController = {
 
     await write(SYNC_USER_KEY, userId, SYNC_TIMEOUT_MS / 1000);
 
-    let unsubscribe: (() => void) | null = null;
+    const abortController = new AbortController();
     let timeout: ReturnType<typeof setTimeout> | null = null;
-    const pollerAbort = new AbortController();
 
     const cleanup = () => {
-      if (unsubscribe) unsubscribe();
+      abortController.abort();
       if (timeout) clearTimeout(timeout);
-      pollerAbort.abort();
-      unsubscribe = null;
       timeout = null;
     };
 
     req.on("close", () => {
-      logger.info("[sync] Client disconnected, tearing down sync");
+      logger.info("[sync] Client disconnected, aborting sync");
       cleanup();
       del(SYNC_USER_KEY).catch(() => {});
-      stopContainerGroup().catch((error) => {
-        logger.error("[sync] Failed to stop container on disconnect:", error);
-      });
     });
 
-    const syncComplete = new Promise<void>((resolve) => {
-      const handler = async (event: SyncEvent) => {
-        if (event.type === "session_refreshed") {
-          const resumed = await resumeAllSearches(userId);
-          logger.info(`[sync] Session refreshed, resumed ${resumed} searches`);
-          sendSSE(res, { status: "synced" });
-          cleanup();
-          res.end();
-          resolve();
-        } else if (event.type === "status_update") {
-          logger.info(`[sync] [${event.step}] ${event.message}`);
-          sendSSE(res, {
-            status: "status_update",
-            message: event.message,
-            step: event.step,
-            userId: event.userId,
-            ...(event.novncUrl ? { novncUrl: event.novncUrl } : {}),
-          });
-        } else if (event.type === "container_exited") {
-          logger.warn(`[sync] Container exited: ${event.reason}`);
-          sendSSE(res, { status: "container_exited", reason: event.reason });
-          cleanup();
-          res.end();
-          resolve();
-        }
-      };
-
-      unsubscribe = subscribeSyncEvents(handler);
-
-      timeout = setTimeout(() => {
-        logger.warn("[sync] Timed out waiting for session refresh");
-        sendSSE(res, { status: "timeout" });
-        cleanup();
-        res.end();
-        resolve();
-      }, SYNC_TIMEOUT_MS);
-    });
-
-    sendSSE(res, { status: "starting_container" });
-
-    try {
-      await startContainerGroup();
-      sendSSE(res, { status: "container_running" });
-    } catch (error) {
-      logger.error("[sync] Failed to start ACI container group:", error);
-      sendSSE(res, {
-        status: "error",
-        message: "Failed to start container group",
-      });
+    timeout = setTimeout(() => {
+      logger.warn("[sync] Timed out waiting for session refresh");
+      sendSSE(res, { status: "timeout" });
       cleanup();
       res.end();
-      return;
-    }
+    }, SYNC_TIMEOUT_MS);
 
-    pollContainerState(pollerAbort.signal).then((state) => {
-      if (state && !pollerAbort.signal.aborted) {
-        publishSyncEvent({ type: "container_exited", reason: `Container state: ${state}` }).catch(
-          (error) => logger.error("[sync] Failed to publish container_exited:", error),
-        );
+    sendSSE(res, { status: "connecting" });
+
+    try {
+      const result = await performSync(
+        userId,
+        (step, message, debuggerUrl) => {
+          logger.info(`[sync] [${step}] ${message}`);
+          sendSSE(res, {
+            status: "status_update",
+            message,
+            step,
+            ...(debuggerUrl ? { debuggerUrl } : {}),
+          });
+        },
+        abortController.signal,
+      );
+
+      if (result.success) {
+        const resumed = await resumeAllSearches(userId);
+        logger.info(`[sync] Session refreshed, resumed ${resumed} searches`);
+        sendSSE(res, { status: "synced" });
       }
-    });
-
-    await syncComplete;
+    } catch (error) {
+      logger.error("[sync] Sync failed:", error);
+      sendSSE(res, {
+        status: "error",
+        message: error instanceof Error ? error.message : "Sync failed",
+      });
+    } finally {
+      cleanup();
+      await del(SYNC_USER_KEY).catch(() => {});
+      res.end();
+    }
   },
 
   async abortSync(_req: Request, res: Response) {
     const syncUserId = await read(SYNC_USER_KEY);
     if (!syncUserId) throw new NoActiveSyncError();
 
-    logger.info("[sync-abort] Aborting sync, stopping container");
-
-    stopContainerGroup().catch((error) => {
-      logger.error("[sync-abort] Failed to stop container group:", error);
-    });
-
+    logger.info("[sync-abort] Aborting sync");
     await del(SYNC_USER_KEY);
     resetResyncFlag();
-    await publishSyncEvent({ type: "container_exited", reason: "Aborted by user" });
 
     res.success(null);
   },

@@ -9,10 +9,7 @@ function searchChannel(searchId: string): string {
   return `search:events:${searchId}`;
 }
 
-export type SyncEvent =
-  | { type: "session_refreshed" }
-  | { type: "status_update"; message: string; step: string; userId?: string; novncUrl?: string }
-  | { type: "container_exited"; reason: string };
+export type SyncEvent = { type: "session_refreshed" };
 
 /**
  * Dedicated Redis connection for Pub/Sub subscriptions.
