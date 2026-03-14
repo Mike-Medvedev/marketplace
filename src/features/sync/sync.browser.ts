@@ -17,8 +17,9 @@ export function getDebuggerUrl(trackingId: string): string {
 }
 
 export async function connectBrowser(trackingId: string): Promise<BrowserSession> {
-  const wsUrl = `${env.BROWSERLESS_WS_URL}?token=${env.BROWSERLESS_TOKEN}&trackingId=${trackingId}`;
-  logger.info(`[browser] Connecting to Browserless (trackingId: ${trackingId}, url: ${env.BROWSERLESS_WS_URL}, tokenLength: ${env.BROWSERLESS_TOKEN?.length})`);
+  const base = env.BROWSERLESS_WS_URL.replace(/\/+$/, "");
+  const wsUrl = `${base}?token=${env.BROWSERLESS_TOKEN}&trackingId=${trackingId}`;
+  logger.info(`[browser] Full WS URL: ${wsUrl}`);
 
   const browser = await chromium.connectOverCDP(wsUrl);
   const context = await browser.newContext({
