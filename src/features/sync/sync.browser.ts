@@ -12,7 +12,7 @@ export function getDebuggerUrl(trackingId: string): string {
   const httpBase = env.BROWSERLESS_WS_URL
     .replace("wss://", "https://")
     .replace("ws://", "http://")
-    .replace(/\/chromium\/playwright\/?$/, "");
+    .replace(/\/+$/, "");
   return `${httpBase}/debugger/?token=${env.BROWSERLESS_TOKEN}&id=${trackingId}`;
 }
 
