@@ -1,4 +1,4 @@
-name: Build and Deploy to Azure Web App
+name: Build and Deploy to Azure Container Apps
 
 on:
   push:
@@ -33,8 +33,9 @@ jobs:
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
 
-      - name: Deploy to Azure Web App
-        uses: azure/webapps-deploy@v3
+      - name: Deploy to Azure Container Apps
+        uses: azure/container-apps-deploy-action@v2
         with:
-          app-name: ${{ vars.AZURE_WEBAPP_NAME }}
-          images: medvedevil/marketscrape:${{ github.sha }}
+          containerAppName: ${{ vars.AZURE_CONTAINER_APP_NAME }}
+          resourceGroup: ${{ vars.AZURE_RESOURCE_GROUP }}
+          imageToDeploy: medvedevil/marketscrape:${{ github.sha }}

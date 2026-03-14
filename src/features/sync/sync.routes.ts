@@ -11,7 +11,7 @@ syncRouter.get(
   "/sync",
   {
     operationId: "beginIdentitySync",
-    summary: "Start identity sync via SSE — spins up ACI Playwright container and streams status",
+    summary: "Start identity sync via SSE — connects to Browserless and streams status",
     skipValidation: true,
   },
   SyncController.beginIdentitySync,
@@ -21,7 +21,7 @@ syncRouter.post(
   "/sync/abort",
   {
     operationId: "abortSync",
-    summary: "Abort an in-progress identity sync — stops the ACI container and cleans up",
+    summary: "Abort an in-progress identity sync",
     skipValidation: true,
   },
   SyncController.abortSync,
