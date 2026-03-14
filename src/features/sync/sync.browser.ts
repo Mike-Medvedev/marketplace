@@ -8,18 +8,45 @@ export interface BrowserSession {
   page: Page;
 }
 
-export function getDebuggerUrl(trackingId: string): string {
-  const httpBase = env.BROWSERLESS_WS_URL
+function getBrowserlessHttpBase(): string {
+  return env.BROWSERLESS_WS_URL
     .replace("wss://", "https://")
     .replace("ws://", "http://")
     .replace(/\/+$/, "");
-  return `${httpBase}/debugger/?token=${env.BROWSERLESS_TOKEN}&id=${trackingId}`;
+}
+
+export function getDebuggerUrl(trackingId: string): string {
+  const externalBase = env.BROWSERLESS_WS_URL
+    .replace("wss://", "https://")
+    .replace("ws://", "http://")
+    .replace(/\.internal\./, ".")
+    .replace(/\/+$/, "");
+  return `${externalBase}/debugger/?token=${env.BROWSERLESS_TOKEN}&id=${trackingId}`;
+}
+
+async function resolveWebSocketUrl(): Promise<string> {
+  const httpBase = getBrowserlessHttpBase();
+  const versionUrl = `${httpBase}/json/version?token=${env.BROWSERLESS_TOKEN}`;
+  logger.info(`[browser] Fetching /json/version from ${httpBase}`);
+
+  const res = await fetch(versionUrl);
+  if (!res.ok) throw new Error(`Failed to fetch /json/version: ${res.status} ${res.statusText}`);
+
+  const data = await res.json() as { webSocketDebuggerUrl?: string };
+  const rawWsUrl = data.webSocketDebuggerUrl;
+  if (!rawWsUrl) throw new Error("/json/version did not return webSocketDebuggerUrl");
+
+  const wsPath = new URL(rawWsUrl).pathname;
+  const base = env.BROWSERLESS_WS_URL.replace(/\/+$/, "");
+  const resolvedUrl = `${base}${wsPath}?token=${env.BROWSERLESS_TOKEN}`;
+
+  logger.info(`[browser] Resolved WS URL: ${resolvedUrl} (raw: ${rawWsUrl})`);
+  return resolvedUrl;
 }
 
 export async function connectBrowser(trackingId: string): Promise<BrowserSession> {
-  const base = env.BROWSERLESS_WS_URL.replace(/\/+$/, "");
-  const wsUrl = `${base}?token=${env.BROWSERLESS_TOKEN}&trackingId=${trackingId}`;
-  logger.info(`[browser] Full WS URL: ${wsUrl}`);
+  const wsUrl = await resolveWebSocketUrl();
+  logger.info(`[browser] Connecting to Browserless (trackingId: ${trackingId})`);
 
   const browser = await chromium.connectOverCDP(wsUrl);
   const context = await browser.newContext({
