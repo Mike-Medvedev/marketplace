@@ -8,7 +8,6 @@ ENV DEBIAN_FRONTEND=noninteractive \
     VNC_PORT=5900 \
     NOVNC_PORT=6080 \
     CHROME_CDP_PORT=9222 \
-    EXTERNAL_CDP_PORT=9223 \
     PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -41,6 +40,6 @@ RUN find /ms-playwright \
 COPY entrypoint.browser.sh /entrypoint.browser.sh
 RUN chmod +x /entrypoint.browser.sh
 
-EXPOSE 6080 5900 9223
+EXPOSE 6080 5900 9222
 
 ENTRYPOINT ["/entrypoint.browser.sh"]

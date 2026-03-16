@@ -32,7 +32,7 @@ interface ChromiumVersionResponse {
 
 app.get("/chromium-test", async (_req, res) => {
   try {
-    const r = await fetch("http://chromium-app:9222/json/version");
+    const r = await fetch("http://127.0.0.1:9222/json/version");
 
     if (!r.ok) {
       throw new Error(`Chromium returned ${r.status}`);
