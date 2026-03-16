@@ -6,68 +6,75 @@ export interface BrowserSession {
   browser: Browser;
   context: BrowserContext;
   page: Page;
+  sessionId: string;
+  vncUrl: string;
 }
 
-function getBrowserlessHttpBase(): string {
-  return env.BROWSERLESS_WS_URL
-    .replace("wss://", "https://")
-    .replace("ws://", "http://")
-    .replace(/\/+$/, "");
-}
-
-export function getDebuggerUrl(trackingId: string): string {
-  const externalBase = env.BROWSERLESS_WS_URL
-    .replace("wss://", "https://")
-    .replace("ws://", "http://")
-    .replace(/\.internal\./, ".")
-    .replace(/\/+$/, "");
-  return `${externalBase}/debugger/?token=${env.BROWSERLESS_TOKEN}&id=${trackingId}`;
-}
-
-async function resolveWebSocketUrl(): Promise<string> {
-  const httpBase = getBrowserlessHttpBase();
-  const versionUrl = `${httpBase}/json/version?token=${env.BROWSERLESS_TOKEN}`;
-  logger.info(`[browser] Fetching /json/version from ${httpBase}`);
-
-  const res = await fetch(versionUrl);
-  if (!res.ok) throw new Error(`Failed to fetch /json/version: ${res.status} ${res.statusText}`);
-
-  const data = await res.json() as { webSocketDebuggerUrl?: string };
-  const rawWsUrl = data.webSocketDebuggerUrl;
-  if (!rawWsUrl) throw new Error("/json/version did not return webSocketDebuggerUrl");
-
-  const wsPath = new URL(rawWsUrl).pathname;
-  const base = env.BROWSERLESS_WS_URL.replace(/\/+$/, "");
-  const resolvedUrl = `${base}${wsPath}?token=${env.BROWSERLESS_TOKEN}`;
-
-  logger.info(`[browser] Resolved WS URL: ${resolvedUrl} (raw: ${rawWsUrl})`);
-  return resolvedUrl;
-}
-
+// Create a new Selenium session and connect Playwright to it via CDP
 export async function connectBrowser(trackingId: string): Promise<BrowserSession> {
-  const wsUrl = await resolveWebSocketUrl();
-  logger.info(`[browser] Connecting to Browserless (trackingId: ${trackingId})`);
+  logger.info(`[browser] Creating Selenium session (trackingId: ${trackingId})`);
 
-  const browser = await chromium.connectOverCDP(wsUrl);
-  const context = await browser.newContext({
-    viewport: { width: 1920, height: 1080 },
-    locale: "en-US",
-    timezoneId: "America/New_York",
-    userAgent:
-      "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36",
-    ignoreHTTPSErrors: true,
+  // Step 1: Create a session via Selenium Grid WebDriver protocol
+  const res = await fetch(`${env.CHROMIUM_URL}/session`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      capabilities: {
+        alwaysMatch: {
+          browserName: "chrome",
+          "goog:chromeOptions": {
+            args: [
+              "--no-sandbox",
+              "--disable-dev-shm-usage",
+              "--disable-gpu",
+              "--window-size=1920,1080",
+            ],
+          },
+        },
+      },
+    }),
   });
-  const page = await context.newPage();
 
-  logger.info("[browser] Connected and context created");
-  return { browser, context, page };
+  if (!res.ok) throw new Error(`Failed to create Selenium session: ${res.status}`);
+  const { value } = (await res.json()) as { value: { sessionId: string } };
+  const sessionId = value.sessionId;
+  logger.info(`[browser] Selenium session created: ${sessionId}`);
+
+  // Step 2: Connect Playwright to that session via CDP
+  const cdpUrl = `${env.CHROMIUM_URL.replace("http://", "ws://").replace("https://", "wss://")}/session/${sessionId}/se/cdp`;
+  const browser = await chromium.connectOverCDP(cdpUrl);
+  const contexts = browser.contexts();
+  const context = contexts[0] ?? (await browser.newContext());
+  const page = context.pages()[0] ?? (await context.newPage());
+
+  // The VNC stream URL for this specific session
+  const vncUrl = `${env.CHROMIUM_URL}/session/${sessionId}/se/vnc`;
+
+  logger.info(`[browser] Connected via CDP, VNC at: ${vncUrl}`);
+  return { browser, context, page, sessionId, vncUrl };
+}
+
+// Returns the noVNC viewer URL to send to the frontend
+export function getDebuggerUrl(sessionId: string): string {
+  // Proxy this through your API since port 7900 isn't public
+  return `${env.BASE_URL}/novnc/?autoconnect=1&resize=scale&password=secret`;
 }
 
 export async function closeBrowserSession(session: BrowserSession): Promise<void> {
   try {
     await session.context.close();
     logger.info("[browser] Context closed");
-  } catch (error) {
-    logger.warn("[browser] Failed to close context:", error);
+  } catch (err) {
+    logger.warn("[browser] Failed to close context:", err);
+  }
+
+  // Delete the Selenium session to free the slot
+  try {
+    await fetch(`${env.CHROMIUM_URL}/session/${session.sessionId}`, {
+      method: "DELETE",
+    });
+    logger.info(`[browser] Selenium session deleted: ${session.sessionId}`);
+  } catch (err) {
+    logger.warn("[browser] Failed to delete Selenium session:", err);
   }
 }

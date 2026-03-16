@@ -12,6 +12,8 @@ import { webhookRouter } from "@/features/webhooks/webhooks.routes.ts";
 import { syncRouter } from "@/features/sync/sync.routes.ts";
 import { facebookRouter } from "@/features/facebook/facebook.routes.ts";
 import packageJson from "../package.json" with { type: "json" };
+import { createProxyMiddleware } from "http-proxy-middleware";
+import { env } from "@/configs/env";
 
 const app = express();
 app.use(json());
@@ -21,6 +23,15 @@ app.use(responseHelpers);
 app.get("/health", (_req, res) => {
   res.status(200).json({ success: true, data: { status: "healthy" } });
 });
+app.use(
+  "/novnc",
+  createProxyMiddleware({
+    target: `${env.CHROMIUM_URL}:7900`,
+    changeOrigin: true,
+    ws: true,
+    pathRewrite: { "^/novnc": "" },
+  }),
+);
 
 app.use("/webhook", webhookRouter);
 
