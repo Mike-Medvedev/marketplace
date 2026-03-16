@@ -20,9 +20,10 @@ x11vnc \
   -noxdamage &
 
 echo "Starting noVNC..."
+# Bind novnc_proxy to 0.0.0.0 so external traffic reaches it
 /opt/novnc/utils/novnc_proxy \
   --vnc "localhost:${VNC_PORT}" \
-  --listen "${NOVNC_PORT}" &
+  --listen 0.0.0.0:"${NOVNC_PORT}" &
 
 echo "Locating Chromium..."
 CHROME_BIN="$(
@@ -33,62 +34,37 @@ CHROME_BIN="$(
     | head -n 1
 )"
 
-if [ -z "${CHROME_BIN}" ]; then
-  echo "Could not find Chromium under ${PLAYWRIGHT_BROWSERS_PATH}"
-  echo "Contents of ${PLAYWRIGHT_BROWSERS_PATH}:"
-  find "${PLAYWRIGHT_BROWSERS_PATH}" -maxdepth 3 -type f || true
-  exit 1
-fi
-
-echo "Using browser binary: ${CHROME_BIN}"
+# (Keep your existing check here)
+if [ -z "${CHROME_BIN}" ]; then exit 1; fi
 
 echo "Starting Chromium..."
 "${CHROME_BIN}" \
   --no-sandbox \
   --disable-dev-shm-usage \
-  --remote-debugging-address=127.0.0.1 \
+  --remote-debugging-address=0.0.0.0 \
   --remote-debugging-port="${CHROME_CDP_PORT}" \
+  --remote-allow-origins=* \
   --user-data-dir=/tmp/chrome-profile \
   --window-size="${SCREEN_WIDTH},${SCREEN_HEIGHT}" \
-  --window-position=0,0 \
   --start-maximized \
-  --disable-background-networking \
-  --disable-component-update \
-  --disable-domain-reliability \
-  --disable-sync \
-  --disable-features=Translate,MediaRouter,OptimizationHints,AutofillServerCommunication \
-  --metrics-recording-only \
-  --password-store=basic \
-  --use-mock-keychain \
   --no-first-run \
   --no-default-browser-check \
   about:blank &
 
 sleep 3
 
-echo "Testing local CDP..."
+# Verify direct connectivity to the CDP port
+echo "Testing direct CDP connectivity on port ${CHROME_CDP_PORT}..."
 curl -sf "http://127.0.0.1:${CHROME_CDP_PORT}/json/version" || {
-  echo "Chromium CDP did not come up"
-  exit 1
-}
-
-echo "Proxying external CDP on 0.0.0.0:${EXTERNAL_CDP_PORT} -> 127.0.0.1:${CHROME_CDP_PORT}"
-socat TCP-LISTEN:${EXTERNAL_CDP_PORT},fork,bind=0.0.0.0 TCP:127.0.0.1:${CHROME_CDP_PORT} &
-
-sleep 1
-
-echo "Testing external CDP proxy..."
-curl -sf "http://127.0.0.1:${EXTERNAL_CDP_PORT}/json/version" || {
-  echo "CDP proxy did not come up"
+  echo "Chromium CDP failed to initialize"
   exit 1
 }
 
 echo "Maximizing Chromium window..."
 wmctrl -r "Chromium" -b add,maximized_vert,maximized_horz || true
-wmctrl -r "Google Chrome" -b add,maximized_vert,maximized_horz || true
 
 echo "Ready"
-echo "noVNC: http://localhost:${NOVNC_PORT}/vnc.html"
-echo "CDP:   http://localhost:${EXTERNAL_CDP_PORT}/json/version"
+echo "noVNC: http://<container-ip>:${NOVNC_PORT}/vnc.html"
+echo "CDP:   http://<container-ip>:${CHROME_CDP_PORT}/json/version"
 
 wait
