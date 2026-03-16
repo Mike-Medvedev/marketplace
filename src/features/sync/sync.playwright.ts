@@ -1,11 +1,10 @@
 import type { Page, BrowserContext, Request as PlaywrightRequest } from "playwright-core";
 import { connectBrowser, closeBrowserSession } from "./sync.browser.ts";
-import { env } from "@/configs/env.ts";
 import { setSession } from "@/features/facebook/facebook.repository.ts";
 import { LOGIN_POLL_INTERVAL_MS, SESSION_CAPTURE_TIMEOUT_MS } from "./sync.constants.ts";
 import logger from "@/infra/logger/logger.ts";
 
-export type SyncStepCallback = (step: string, message: string, vncUrl?: string) => void;
+export type SyncStepCallback = (step: string, message: string) => void;
 
 export interface SyncResult {
   success: boolean;
@@ -227,7 +226,7 @@ export async function performSync(
       await page.waitForTimeout(2000);
       await dismissNotificationPrompt(page);
 
-      onStep("needs_login", "Login required. Waiting for user to log in...", env.CHROMIUM_VNC_URL);
+      onStep("needs_login", "Login required. Waiting for user to log in...");
 
       await waitForLogin(page, signal);
       if (signal.aborted) return { success: false, needsLogin: true };
