@@ -25,11 +25,12 @@ app.get("/health", (_req, res) => {
 });
 app.get("/health/chromium", async (_req, res) => {
   try {
-    const response = await fetch(`${env.CHROMIUM_URL}/status`);
-    const data = await response.json();
-    res.json(data);
-  } catch (err) {
-    res.status(500).json({ error: (err as Error).message });
+    const http = await fetch(
+      "http://chromium-app.internal.kindocean-fa25625e.eastus2.azurecontainerapps.io:4444/status",
+    );
+    res.json({ http: http.status });
+  } catch (e) {
+    res.json({ http_error: (e as Error).message });
   }
 });
 app.use(
