@@ -24,58 +24,38 @@ app.use(responseHelpers);
 app.get("/health", (_req, res) => {
   res.status(200).json({ success: true, data: { status: "healthy" } });
 });
-app.get("/novnc-test", async (_req, res) => {
+interface ChromiumVersionResponse {
+  Browser: string;
+  "Protocol-Version": string;
+  webSocketDebuggerUrl: string;
+}
+
+app.get("/chromium-test", async (_req, res) => {
   try {
-    const r = await fetch("http://chromium-app:7900/vnc.html");
-    const html = await r.text();
-    res.setHeader("Content-Type", r.headers.get("content-type") || "text/html");
-    res.send(html);
+    const r = await fetch("http://chromium-app:9223/json/version");
+
+    if (!r.ok) {
+      throw new Error(`Chromium returned ${r.status}`);
+    }
+
+    const data = (await r.json()) as ChromiumVersionResponse;
+
+    res.json({
+      success: true,
+      message: "Chromium reachable",
+      browser: data.Browser,
+      protocolVersion: data["Protocol-Version"],
+      webSocketDebuggerUrl: data.webSocketDebuggerUrl,
+    });
   } catch (err) {
-    console.error("novnc-test failed", err);
+    console.error("chromium-test failed", err);
+
     res.status(500).json({
       success: false,
       error: err instanceof Error ? err.message : String(err),
     });
   }
 });
-app.use(
-  "/novnc",
-  createProxyMiddleware({
-    target: "http://chromium-app:7900",
-    changeOrigin: true,
-    ws: true,
-    secure: false,
-    proxyTimeout: 30000,
-    timeout: 30000,
-    pathRewrite: (path) => path.replace(/^\/novnc/, ""),
-    on: {
-      error(err, req, res) {
-        console.error("noVNC proxy error", {
-          message: err.message,
-          code: (err as NodeJS.ErrnoException).code,
-          stack: err.stack,
-          url: req.url,
-        });
-
-        if ("writeHead" in res && !res.headersSent) {
-          res.writeHead(502, { "Content-Type": "application/json" });
-          res.end(
-            JSON.stringify({
-              success: false,
-              error: {
-                message: err.message,
-                code: (err as NodeJS.ErrnoException).code,
-              },
-            }),
-          );
-          return;
-        }
-
-        res.end();
-      },
-    },
-  }),
-);
 app.use("/webhook", webhookRouter);
 
 app.use("/api/v1", validateUser, scrapeRouter);

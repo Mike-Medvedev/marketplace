@@ -1,28 +1,74 @@
-#!/bin/bash
-set -e
+#!/usr/bin/env bash
+set -euo pipefail
 
-Xvfb :99 -screen 0 1280x720x24 -nolisten tcp &
+echo "Starting Xvfb..."
+Xvfb "${DISPLAY}" -screen 0 "${SCREEN_WIDTH}x${SCREEN_HEIGHT}x${SCREEN_DEPTH}" &
+
 sleep 1
 
-chromium \
+echo "Starting fluxbox..."
+fluxbox &
+
+echo "Starting x11vnc..."
+x11vnc \
+  -display "${DISPLAY}" \
+  -forever \
+  -shared \
+  -nopw \
+  -rfbport "${VNC_PORT}" \
+  -listen 0.0.0.0 \
+  -noxdamage &
+
+echo "Starting noVNC..."
+/opt/novnc/utils/novnc_proxy \
+  --vnc "localhost:${VNC_PORT}" \
+  --listen "${NOVNC_PORT}" &
+
+echo "Locating Chromium..."
+CHROME_BIN="$(find /ms-playwright -type f -path '*/chrome-linux/chrome' | head -n 1)"
+
+if [ -z "${CHROME_BIN}" ]; then
+  echo "Could not find Chromium under /ms-playwright"
+  exit 1
+fi
+
+echo "Using browser binary: ${CHROME_BIN}"
+
+echo "Starting Chromium..."
+"${CHROME_BIN}" \
   --no-sandbox \
   --disable-dev-shm-usage \
-  --disable-gpu \
-  --remote-debugging-address=0.0.0.0 \
-  --remote-debugging-port=9222 \
-  --window-size=1280,720 \
+  --remote-debugging-address=127.0.0.1 \
+  --remote-debugging-port="${CHROME_CDP_PORT}" \
+  --user-data-dir=/tmp/chrome-profile \
+  --window-size="${SCREEN_WIDTH},${SCREEN_HEIGHT}" \
+  --window-position=0,0 \
   --start-maximized \
   --disable-background-networking \
-  --disable-default-apps \
+  --disable-component-update \
+  --disable-domain-reliability \
+  --disable-sync \
+  --disable-features=Translate,MediaRouter,OptimizationHints,AutofillServerCommunication \
+  --metrics-recording-only \
+  --password-store=basic \
+  --use-mock-keychain \
   --no-first-run \
-  &
+  --no-default-browser-check \
+  about:blank &
+
+sleep 3
+
+echo "Proxying external CDP on 0.0.0.0:${EXTERNAL_CDP_PORT} -> 127.0.0.1:${CHROME_CDP_PORT}"
+socat TCP-LISTEN:${EXTERNAL_CDP_PORT},fork,bind=0.0.0.0 TCP:127.0.0.1:${CHROME_CDP_PORT} &
+
 sleep 2
 
-x11vnc -display :99 -nopw -listen 0.0.0.0 -forever -shared -rfbport 5900 \
-  -noxdamage \
-  -ncache 10 \
-  -quality 9 \
-  -compress 0 \
-  &
+echo "Maximizing Chromium window..."
+wmctrl -r "Chromium" -b add,maximized_vert,maximized_horz || true
+wmctrl -r "Google Chrome" -b add,maximized_vert,maximized_horz || true
 
-exec websockify 0.0.0.0:6080 localhost:5900
+echo "Ready"
+echo "noVNC: http://localhost:${NOVNC_PORT}/vnc.html"
+echo "CDP:   http://localhost:${EXTERNAL_CDP_PORT}/json/version"
+
+wait
