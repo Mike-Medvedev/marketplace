@@ -25,10 +25,18 @@ echo "Starting noVNC..."
   --listen "${NOVNC_PORT}" &
 
 echo "Locating Chromium..."
-CHROME_BIN="$(find /ms-playwright -type f -path '*/chrome-linux/chrome' | head -n 1)"
+CHROME_BIN="$(
+  find "${PLAYWRIGHT_BROWSERS_PATH}" \
+    -type f \
+    \( -path '*/chrome-linux64/chrome' -o -path '*/chrome-linux/chrome' \) \
+    | sort \
+    | head -n 1
+)"
 
 if [ -z "${CHROME_BIN}" ]; then
-  echo "Could not find Chromium under /ms-playwright"
+  echo "Could not find Chromium under ${PLAYWRIGHT_BROWSERS_PATH}"
+  echo "Contents of ${PLAYWRIGHT_BROWSERS_PATH}:"
+  find "${PLAYWRIGHT_BROWSERS_PATH}" -maxdepth 3 -type f || true
   exit 1
 fi
 
@@ -58,10 +66,22 @@ echo "Starting Chromium..."
 
 sleep 3
 
+echo "Testing local CDP..."
+curl -sf "http://127.0.0.1:${CHROME_CDP_PORT}/json/version" || {
+  echo "Chromium CDP did not come up"
+  exit 1
+}
+
 echo "Proxying external CDP on 0.0.0.0:${EXTERNAL_CDP_PORT} -> 127.0.0.1:${CHROME_CDP_PORT}"
 socat TCP-LISTEN:${EXTERNAL_CDP_PORT},fork,bind=0.0.0.0 TCP:127.0.0.1:${CHROME_CDP_PORT} &
 
-sleep 2
+sleep 1
+
+echo "Testing external CDP proxy..."
+curl -sf "http://127.0.0.1:${EXTERNAL_CDP_PORT}/json/version" || {
+  echo "CDP proxy did not come up"
+  exit 1
+}
 
 echo "Maximizing Chromium window..."
 wmctrl -r "Chromium" -b add,maximized_vert,maximized_horz || true

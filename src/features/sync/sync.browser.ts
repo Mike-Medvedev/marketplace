@@ -7,11 +7,25 @@ export interface BrowserSession {
   context: BrowserContext;
   page: Page;
 }
-
+interface CDPVersionResponse {
+  webSocketDebuggerUrl: string;
+}
 export async function connectBrowser(): Promise<BrowserSession> {
   logger.info(`[browser] Connecting via CDP to ${env.CHROMIUM_CDP_URL}`);
 
-  const browser = await chromium.connectOverCDP(env.CHROMIUM_CDP_URL);
+  const res = await fetch(`${env.CHROMIUM_CDP_URL}/json/version`);
+
+  if (!res.ok) {
+    throw new Error(`Failed to fetch CDP metadata: ${res.status}`);
+  }
+
+  const meta = (await res.json()) as CDPVersionResponse;
+
+  const wsEndpoint = new URL(meta.webSocketDebuggerUrl);
+  wsEndpoint.hostname = "chromium-app";
+
+  const browser = await chromium.connectOverCDP(wsEndpoint.toString());
+
   const context = await browser.newContext({
     viewport: { width: 1280, height: 720 },
     locale: "en-US",
