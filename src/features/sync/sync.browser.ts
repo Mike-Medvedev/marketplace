@@ -14,14 +14,13 @@ export async function connectBrowser(): Promise<BrowserSession> {
   logger.info(`[browser] Connecting via CDP to ${env.CHROMIUM_CDP_URL}`);
 
   // 1. Fetch metadata using localhost (or 127.0.0.1)
-  const res = await fetch(`${env.CHROMIUM_CDP_URL}/json/version`);
-
+  const res = await fetch("127.0.0.1/json/version");
   if (!res.ok) {
     throw new Error(`Failed to fetch CDP metadata: ${res.status}`);
   }
 
   const meta = (await res.json()) as CDPVersionResponse;
-
+  logger.info(meta);
   const wsEndpoint = new URL(meta.webSocketDebuggerUrl);
 
   logger.info(`[browser] Connecting to WS endpoint: ${wsEndpoint.toString()}`);
