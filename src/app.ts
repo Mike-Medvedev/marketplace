@@ -24,60 +24,48 @@ app.use(responseHelpers);
 app.get("/health", (_req, res) => {
   res.status(200).json({ success: true, data: { status: "healthy" } });
 });
-app.get("/health/chromium", async (_req, res) => {
-  const results: Record<string, unknown> = {};
-
+app.get("/novnc-test", async (_req, res) => {
   try {
-    const r = await fetch(`${env.CHROMIUM_URL}/status`);
-    results["selenium"] = await r.json();
-  } catch (e) {
-    results["selenium_error"] = (e as Error).message;
-  }
-  try {
-    const r = await fetch("http://chromium-app:7900", {
-      signal: AbortSignal.timeout(5000),
+    const r = await fetch("http://chromium-app:7900/vnc.html");
+    const html = await r.text();
+    res.setHeader("Content-Type", r.headers.get("content-type") || "text/html");
+    res.send(html);
+  } catch (err) {
+    console.error("novnc-test failed", err);
+    res.status(500).json({
+      success: false,
+      error: err instanceof Error ? err.message : String(err),
     });
-    results["novnc_shortname_7900"] = r.status;
-  } catch (e) {
-    results["novnc_shortname_7900_error"] = (e as Error).message;
   }
-  try {
-    const r = await fetch("http://chromium-app:7900/vnc.html", {
-      signal: AbortSignal.timeout(5000),
-    });
-    results["novnc_shortname_vnc_html"] = r.status;
-  } catch (e) {
-    results["novnc_shortname_vnc_html_error"] = (e as Error).message;
-  }
-  try {
-    const r = await fetch(
-      "http://chromium-app.internal.kindocean-fa25625e.eastus2.azurecontainerapps.io:7900",
-      { signal: AbortSignal.timeout(5000) },
-    );
-    results["novnc_7900"] = r.status;
-  } catch (e) {
-    results["novnc_7900_error"] = (e as Error).message;
-  }
-
-  res.json(results);
 });
 app.use(
   "/novnc",
   createProxyMiddleware({
-    target: "http://chromium-app.internal.kindocean-fa25625e.eastus2.azurecontainerapps.io:7900",
+    target: "http://chromium-app:7900",
     changeOrigin: true,
     ws: true,
-    pathRewrite: { "^/novnc": "" },
+    secure: false,
+    proxyTimeout: 30000,
+    timeout: 30000,
+    pathRewrite: (path) => path.replace(/^\/novnc/, ""),
     on: {
-      error(err, _req, res) {
-        logger.error("[novnc-proxy] Proxy error:", err);
+      error(err, req, res) {
+        console.error("noVNC proxy error", {
+          message: err.message,
+          code: (err as NodeJS.ErrnoException).code,
+          stack: err.stack,
+          url: req.url,
+        });
 
         if ("writeHead" in res && !res.headersSent) {
           res.writeHead(502, { "Content-Type": "application/json" });
           res.end(
             JSON.stringify({
               success: false,
-              error: { message: "noVNC proxy failed" },
+              error: {
+                message: err.message,
+                code: (err as NodeJS.ErrnoException).code,
+              },
             }),
           );
           return;
@@ -88,7 +76,6 @@ app.use(
     },
   }),
 );
-
 app.use("/webhook", webhookRouter);
 
 app.use("/api/v1", validateUser, scrapeRouter);
