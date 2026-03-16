@@ -21,7 +21,9 @@ export async function connectBrowser(): Promise<BrowserSession> {
 
   const meta = (await res.json()) as CDPVersionResponse;
   logger.info(meta);
+
   const wsEndpoint = new URL(meta.webSocketDebuggerUrl);
+  wsEndpoint.hostname = "127.0.0.1";
 
   logger.info(`[browser] Connecting to WS endpoint: ${wsEndpoint.toString()}`);
 
