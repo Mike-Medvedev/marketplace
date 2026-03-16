@@ -33,6 +33,7 @@
     "drizzle-orm": "^0.45.1",
     "drizzle-zod": "^0.8.3",
     "express": "^5.2.1",
+    "http-proxy-middleware": "^3.0.5",
     "ioredis": "^5.9.3",
     "meebo": "^0.7.0",
     "nodemailer": "^8.0.1",

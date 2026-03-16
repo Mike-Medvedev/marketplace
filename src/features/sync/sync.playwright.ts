@@ -57,14 +57,30 @@ async function dismissNotificationPrompt(page: Page): Promise<void> {
   const blockButton = page.getByRole("button", { name: /^Block$/i });
   const closeButton = page.getByRole("button", { name: /^Close$/i });
 
-  if (await blockButton.first().isVisible({ timeout: 1500 }).catch(() => false)) {
-    await blockButton.first().click().catch(() => {});
+  if (
+    await blockButton
+      .first()
+      .isVisible({ timeout: 1500 })
+      .catch(() => false)
+  ) {
+    await blockButton
+      .first()
+      .click()
+      .catch(() => {});
     await page.waitForTimeout(1000);
     return;
   }
 
-  if (await closeButton.first().isVisible({ timeout: 1500 }).catch(() => false)) {
-    await closeButton.first().click().catch(() => {});
+  if (
+    await closeButton
+      .first()
+      .isVisible({ timeout: 1500 })
+      .catch(() => false)
+  ) {
+    await closeButton
+      .first()
+      .click()
+      .catch(() => {});
     await page.waitForTimeout(1000);
   }
 }
@@ -106,10 +122,14 @@ function captureSession(page: Page, context: BrowserContext): Promise<CapturedSe
       if (!cookieHeader) {
         cookieRetryCount++;
         if (cookieRetryCount <= MAX_COOKIE_RETRIES) {
-          logger.debug(`[playwright] GraphQL has no cookies yet (attempt ${cookieRetryCount}/${MAX_COOKIE_RETRIES})`);
+          logger.debug(
+            `[playwright] GraphQL has no cookies yet (attempt ${cookieRetryCount}/${MAX_COOKIE_RETRIES})`,
+          );
           return;
         }
-        logger.debug(`[playwright] Still no cookies after ${MAX_COOKIE_RETRIES} attempts, skipping`);
+        logger.debug(
+          `[playwright] Still no cookies after ${MAX_COOKIE_RETRIES} attempts, skipping`,
+        );
         return;
       }
 
@@ -134,10 +154,21 @@ async function triggerMarketplaceGraphQL(page: Page): Promise<void> {
   logger.info("[playwright] Triggering authenticated GraphQL via marketplace interactions...");
 
   const searchBar = page.locator('input[type="search"][placeholder="Search Marketplace"]');
-  if (await searchBar.first().isVisible({ timeout: 8000 }).catch(() => false)) {
-    await searchBar.first().hover().catch(() => {});
+  if (
+    await searchBar
+      .first()
+      .isVisible({ timeout: 8000 })
+      .catch(() => false)
+  ) {
+    await searchBar
+      .first()
+      .hover()
+      .catch(() => {});
     await page.waitForTimeout(1000);
-    await searchBar.first().click().catch(() => {});
+    await searchBar
+      .first()
+      .click()
+      .catch(() => {});
     await page.waitForTimeout(3000);
     await page.keyboard.press("Escape").catch(() => {});
     await page.waitForTimeout(1000);
@@ -149,7 +180,10 @@ async function triggerMarketplaceGraphQL(page: Page): Promise<void> {
   if (listingCount > 0) {
     logger.info(`[playwright] Hovering ${Math.min(listingCount, 5)} listings...`);
     for (let i = 0; i < Math.min(listingCount, 5); i++) {
-      await listingItems.nth(i).hover({ force: true }).catch(() => {});
+      await listingItems
+        .nth(i)
+        .hover({ force: true })
+        .catch(() => {});
       await page.waitForTimeout(1000);
     }
   }

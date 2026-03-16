@@ -14,7 +14,7 @@ export function resetResyncFlag(): void {
 
 /**
  * Automated resync triggered when a scheduled search encounters
- * a FacebookSessionExpiredError. Connects to Browserless and attempts
+ * a FacebookSessionExpiredError. Connects to chromium and attempts
  * to refresh the session automatically. If human login is required,
  * pauses all searches and sends an email notification.
  *

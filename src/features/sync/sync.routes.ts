@@ -11,7 +11,7 @@ syncRouter.get(
   "/sync",
   {
     operationId: "beginIdentitySync",
-    summary: "Start identity sync via SSE — connects to Browserless and streams status",
+    summary: "Start identity sync via SSE — connects to chromium and streams status",
     skipValidation: true,
   },
   SyncController.beginIdentitySync,
