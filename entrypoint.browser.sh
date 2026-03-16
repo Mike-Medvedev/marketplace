@@ -1,13 +1,46 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-echo "Starting Xvfb..."
-Xvfb "${DISPLAY}" -screen 0 "${SCREEN_WIDTH}x${SCREEN_HEIGHT}x${SCREEN_DEPTH}" &
-
+echo "Starting Xvfb at ${SCREEN_WIDTH}x${SCREEN_HEIGHT}x${SCREEN_DEPTH}..."
+Xvfb "${DISPLAY}" -screen 0 "${SCREEN_WIDTH}x${SCREEN_HEIGHT}x${SCREEN_DEPTH}" -ac &
 sleep 1
+
+echo "Configuring fluxbox (no toolbar, no tabs, no decorations)..."
+mkdir -p ~/.fluxbox
+
+cat > ~/.fluxbox/init <<'FLUXCFG'
+session.screen0.toolbar.visible: false
+session.screen0.toolbar.widthPercent: 0
+session.screen0.tabs.intitlebar: false
+session.screen0.window.focus.model: ClickFocus
+session.screen0.defaultDeco: NONE
+session.screen0.colPlacementDirection: TopToBottom
+session.screen0.rowPlacementDirection: LeftToRight
+session.styleFile: /usr/share/fluxbox/styles/Emerge
+session.styleOverlay: ~/.fluxbox/overlay
+FLUXCFG
+
+cat > ~/.fluxbox/overlay <<'OVERLAY'
+window.title.height: 0
+window.handleWidth: 0
+window.borderWidth: 0
+window.bevelWidth: 0
+toolbar.height: 0
+toolbar.borderWidth: 0
+OVERLAY
+
+cat > ~/.fluxbox/apps <<'APPS'
+[app] (.*) 
+  [Deco] {NONE}
+  [Dimensions] {1920 1080}
+  [Position] {0 0}
+  [Maximized] {yes}
+[end]
+APPS
 
 echo "Starting fluxbox..."
 fluxbox &
+sleep 1
 
 echo "Starting x11vnc..."
 x11vnc \
@@ -17,10 +50,10 @@ x11vnc \
   -nopw \
   -rfbport "${VNC_PORT}" \
   -listen 0.0.0.0 \
-  -noxdamage &
+  -noxdamage \
+  -xkb &
 
 echo "Starting noVNC..."
-# Bind novnc_proxy to 0.0.0.0 so external traffic reaches it
 /opt/novnc/utils/novnc_proxy \
   --vnc "localhost:${VNC_PORT}" \
   --listen 0.0.0.0:"${NOVNC_PORT}" &
@@ -34,37 +67,58 @@ CHROME_BIN="$(
     | head -n 1
 )"
 
-# (Keep your existing check here)
-if [ -z "${CHROME_BIN}" ]; then exit 1; fi
+if [ -z "${CHROME_BIN}" ]; then
+  echo "ERROR: Chromium binary not found"
+  exit 1
+fi
 
-echo "Starting Chromium..."
+echo "Starting Chromium (headful kiosk, CDP on port ${CHROME_CDP_PORT})..."
 "${CHROME_BIN}" \
   --no-sandbox \
   --disable-dev-shm-usage \
+  --disable-gpu \
   --remote-debugging-address=0.0.0.0 \
   --remote-debugging-port="${CHROME_CDP_PORT}" \
   --remote-allow-origins=* \
   --user-data-dir=/tmp/chrome-profile \
   --window-size="${SCREEN_WIDTH},${SCREEN_HEIGHT}" \
-  --start-maximized \
+  --window-position=0,0 \
+  --kiosk \
   --no-first-run \
   --no-default-browser-check \
+  --disable-infobars \
+  --disable-translate \
+  --disable-features=TranslateUI \
+  --disable-popup-blocking \
   about:blank &
 
-sleep 3
+echo "Waiting for CDP to be ready..."
+for i in $(seq 1 20); do
+  if curl -sf "http://127.0.0.1:${CHROME_CDP_PORT}/json/version" > /dev/null 2>&1; then
+    echo "CDP ready after ${i}s"
+    break
+  fi
+  if [ "$i" -eq 20 ]; then
+    echo "ERROR: Chromium CDP failed to initialize after 20s"
+    exit 1
+  fi
+  sleep 1
+done
 
-# Verify direct connectivity to the CDP port
-echo "Testing direct CDP connectivity on port ${CHROME_CDP_PORT}..."
-curl -sf "http://127.0.0.1:${CHROME_CDP_PORT}/json/version" || {
-  echo "Chromium CDP failed to initialize"
-  exit 1
-}
-
+sleep 1
 echo "Maximizing Chromium window..."
-wmctrl -r "Chromium" -b add,maximized_vert,maximized_horz || true
+for i in $(seq 1 5); do
+  if wmctrl -l | grep -qi "chromium"; then
+    wmctrl -r :ACTIVE: -b add,maximized_vert,maximized_horz 2>/dev/null || true
+    echo "Window maximized"
+    break
+  fi
+  sleep 1
+done
 
-echo "Ready"
-echo "noVNC: http://<container-ip>:${NOVNC_PORT}/vnc.html"
-echo "CDP:   http://<container-ip>:${CHROME_CDP_PORT}/json/version"
+echo "=== Browser sidecar ready ==="
+echo "  noVNC : http://0.0.0.0:${NOVNC_PORT}/vnc.html"
+echo "  CDP   : http://0.0.0.0:${CHROME_CDP_PORT}/json/version"
+echo "  Screen: ${SCREEN_WIDTH}x${SCREEN_HEIGHT}x${SCREEN_DEPTH}"
 
 wait

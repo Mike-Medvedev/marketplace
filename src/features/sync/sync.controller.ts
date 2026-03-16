@@ -2,8 +2,8 @@ import { isSessionValid } from "@/features/facebook/facebook.service.ts";
 import { resumeAllSearches } from "@/features/searches/searches.repository.ts";
 import { performSync } from "./sync.playwright.ts";
 import { resetResyncFlag } from "./sync.service.ts";
-import { SYNC_TIMEOUT_MS, SYNC_USER_KEY } from "./sync.constants.ts";
-import { write, read, del } from "@/infra/redis/redis.client.ts";
+import { SYNC_TIMEOUT_MS, syncUserKey, VNC_LOCK_KEY } from "./sync.constants.ts";
+import { acquireLock, read, del } from "@/infra/redis/redis.client.ts";
 import { NoActiveSyncError } from "@/shared/errors/errors.ts";
 import logger from "@/infra/logger/logger.ts";
 import type { Request, Response } from "express";
@@ -15,6 +15,7 @@ function sendSSE(res: Response, data: Record<string, unknown>): void {
 export const SyncController = {
   async beginIdentitySync(req: Request, res: Response) {
     const userId = req.user!.id;
+    const userKey = syncUserKey(userId);
 
     res.writeHead(200, {
       "Content-Type": "text/event-stream",
@@ -29,7 +30,23 @@ export const SyncController = {
       return;
     }
 
-    await write(SYNC_USER_KEY, userId, SYNC_TIMEOUT_MS / 1000);
+    const gotVncLock = await acquireLock(VNC_LOCK_KEY, userId, SYNC_TIMEOUT_MS / 1000);
+    if (!gotVncLock) {
+      sendSSE(res, {
+        status: "error",
+        message: "Another user is currently syncing. Please try again in a few minutes.",
+      });
+      res.end();
+      return;
+    }
+
+    const gotUserLock = await acquireLock(userKey, "1", SYNC_TIMEOUT_MS / 1000);
+    if (!gotUserLock) {
+      await del(VNC_LOCK_KEY).catch(() => {});
+      sendSSE(res, { status: "error", message: "A sync is already in progress for this account" });
+      res.end();
+      return;
+    }
 
     const abortController = new AbortController();
     let timeout: ReturnType<typeof setTimeout> | null = null;
@@ -40,14 +57,19 @@ export const SyncController = {
       timeout = null;
     };
 
+    const releaseLocks = async () => {
+      await del(userKey).catch(() => {});
+      await del(VNC_LOCK_KEY).catch(() => {});
+    };
+
     req.on("close", () => {
-      logger.info("[sync] Client disconnected, aborting sync");
+      logger.info(`[sync] Client disconnected, aborting sync for ${userId}`);
       cleanup();
-      del(SYNC_USER_KEY).catch(() => {});
+      releaseLocks();
     });
 
     timeout = setTimeout(() => {
-      logger.warn("[sync] Timed out waiting for session refresh");
+      logger.warn(`[sync] Timed out waiting for session refresh for ${userId}`);
       sendSSE(res, { status: "timeout" });
       cleanup();
       res.end();
@@ -59,7 +81,7 @@ export const SyncController = {
       const result = await performSync(
         userId,
         (step, message, vncUrl) => {
-          logger.info(`[sync] [${step}] ${message}`);
+          logger.info(`[sync] [${userId}] [${step}] ${message}`);
           sendSSE(res, {
             status: "status_update",
             message,
@@ -72,28 +94,31 @@ export const SyncController = {
 
       if (result.success) {
         const resumed = await resumeAllSearches(userId);
-        logger.info(`[sync] Session refreshed, resumed ${resumed} searches`);
+        logger.info(`[sync] Session refreshed for ${userId}, resumed ${resumed} searches`);
         sendSSE(res, { status: "synced" });
       }
     } catch (error) {
-      logger.error("[sync] Sync failed:", error);
+      logger.error(`[sync] Sync failed for ${userId}:`, error);
       sendSSE(res, {
         status: "error",
         message: error instanceof Error ? error.message : "Sync failed",
       });
     } finally {
       cleanup();
-      await del(SYNC_USER_KEY).catch(() => {});
+      await releaseLocks();
       res.end();
     }
   },
 
-  async abortSync(_req: Request, res: Response) {
-    const syncUserId = await read(SYNC_USER_KEY);
-    if (!syncUserId) throw new NoActiveSyncError();
+  async abortSync(req: Request, res: Response) {
+    const userId = req.user!.id;
+    const userKey = syncUserKey(userId);
+    const isSyncing = await read(userKey);
+    if (!isSyncing) throw new NoActiveSyncError();
 
-    logger.info("[sync-abort] Aborting sync");
-    await del(SYNC_USER_KEY);
+    logger.info(`[sync-abort] Aborting sync for ${userId}`);
+    await del(userKey);
+    await del(VNC_LOCK_KEY);
     resetResyncFlag();
 
     res.success(null);

@@ -21,3 +21,9 @@ export async function write(key: string, value: string, ttlSeconds?: number): Pr
     await redis.set(key, value);
   }
 }
+
+/** Atomic SET-if-not-exists with TTL. Returns true if the lock was acquired. */
+export async function acquireLock(key: string, value: string, ttlSeconds: number): Promise<boolean> {
+  const result = await redis.set(key, value, "EX", ttlSeconds, "NX");
+  return result === "OK";
+}

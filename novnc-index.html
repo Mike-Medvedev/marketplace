@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Browser Session</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body { width: 100%; height: 100%; overflow: hidden; background: #1a1a2e; }
+    #screen { width: 100%; height: 100%; }
+  </style>
+</head>
+<body>
+  <div id="screen"></div>
+
+  <script type="module">
+    import RFB from "./core/rfb.js";
+
+    const host = window.location.hostname;
+    const port = window.location.port || "6080";
+    const path = "websockify";
+
+    const url = `${window.location.protocol === "https:" ? "wss" : "ws"}://${host}:${port}/${path}`;
+
+    const rfb = new RFB(document.getElementById("screen"), url, {
+      scaleViewport: true,
+      resizeSession: false,
+      clipViewport: false,
+      showDotCursor: true,
+      qualityLevel: 6,
+      compressionLevel: 2,
+    });
+
+    rfb.viewOnly = false;
+    rfb.focusOnClick = true;
+  </script>
+</body>
+</html>

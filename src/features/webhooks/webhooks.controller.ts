@@ -1,7 +1,5 @@
 import { setSession } from "@/features/facebook/facebook.repository.ts";
 import { publishSyncEvent } from "@/infra/redis/redis.pubsub.ts";
-import { read } from "@/infra/redis/redis.client.ts";
-import { SYNC_USER_KEY } from "@/features/sync/sync.constants.ts";
 import logger from "@/infra/logger/logger.ts";
 import type { Request, Response } from "express";
 
@@ -21,15 +19,14 @@ export const WebhooksController = {
       return;
     }
 
-    const resolvedUserId = userId ?? (await read(SYNC_USER_KEY));
-    if (!resolvedUserId) {
-      logger.warn("[refresh] No userId in payload or Redis");
-      res.error(400, new Error("Cannot determine userId for session"));
+    if (!userId) {
+      logger.warn("[refresh] No userId in payload");
+      res.error(400, new Error("Missing userId in refresh payload"));
       return;
     }
 
-    await setSession(resolvedUserId, { headers, body, capturedAt });
-    logger.info(`[refresh] Session updated for user ${resolvedUserId} at ${capturedAt}`);
+    await setSession(userId, { headers, body, capturedAt });
+    logger.info(`[refresh] Session updated for user ${userId} at ${capturedAt}`);
     await publishSyncEvent({ type: "session_refreshed" });
     res.success(null);
   },

@@ -22,17 +22,16 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates \
     python3 \
     wmctrl \
-    socat \
+    curl \
     && rm -rf /var/lib/apt/lists/*
 
 RUN git clone --depth 1 https://github.com/novnc/noVNC.git /opt/novnc \
-    && git clone --depth 1 https://github.com/novnc/websockify.git /opt/novnc/utils/websockify \
-    && ln -sf /opt/novnc/vnc.html /opt/novnc/index.html
+    && git clone --depth 1 https://github.com/novnc/websockify.git /opt/novnc/utils/websockify
 
-# Guarantee Chromium is installed in /ms-playwright
+COPY novnc-index.html /opt/novnc/index.html
+
 RUN npx -y playwright@1.58.2 install chromium
 
-# Optional sanity check during build
 RUN find /ms-playwright \
     -type f \
     \( -path '*/chrome-linux64/chrome' -o -path '*/chrome-linux/chrome' \)

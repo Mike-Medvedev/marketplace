@@ -2,8 +2,8 @@ import { pauseAllSearches, resumeAllSearches } from "@/features/searches/searche
 import { sendResyncEmail } from "@/infra/email/email.client.ts";
 import { env } from "@/configs/env.ts";
 import { performSync } from "./sync.playwright.ts";
-import { SYNC_TIMEOUT_MS, SYNC_USER_KEY } from "./sync.constants.ts";
-import { write } from "@/infra/redis/redis.client.ts";
+import { SYNC_TIMEOUT_MS, syncUserKey, VNC_LOCK_KEY } from "./sync.constants.ts";
+import { acquireLock, del } from "@/infra/redis/redis.client.ts";
 import logger from "@/infra/logger/logger.ts";
 
 let resyncInProgress = false;
@@ -26,9 +26,18 @@ export async function triggerAutoResync(userId: string): Promise<void> {
     return;
   }
   resyncInProgress = true;
-  logger.info("[auto-resync] Starting automated resync");
 
-  await write(SYNC_USER_KEY, userId, SYNC_TIMEOUT_MS / 1000);
+  const userKey = syncUserKey(userId);
+  logger.info(`[auto-resync] Starting automated resync for ${userId}`);
+
+  const gotVncLock = await acquireLock(VNC_LOCK_KEY, userId, SYNC_TIMEOUT_MS / 1000);
+  if (!gotVncLock) {
+    logger.warn("[auto-resync] VNC is in use by another sync, skipping");
+    resyncInProgress = false;
+    return;
+  }
+
+  await acquireLock(userKey, "1", SYNC_TIMEOUT_MS / 1000);
 
   const abortController = new AbortController();
   const timeout = setTimeout(() => abortController.abort(), SYNC_TIMEOUT_MS);
@@ -37,14 +46,14 @@ export async function triggerAutoResync(userId: string): Promise<void> {
     const result = await performSync(
       userId,
       (step, message) => {
-        logger.info(`[auto-resync] [${step}] ${message}`);
+        logger.info(`[auto-resync] [${userId}] [${step}] ${message}`);
       },
       abortController.signal,
     );
 
     if (result.success) {
       const resumed = await resumeAllSearches();
-      logger.info(`[auto-resync] Session auto-refreshed, resumed ${resumed} searches`);
+      logger.info(`[auto-resync] Session auto-refreshed for ${userId}, resumed ${resumed} searches`);
     } else if (result.needsLogin) {
       const paused = await pauseAllSearches();
       logger.warn(`[auto-resync] Paused ${paused} searches, sending email notification`);
@@ -55,7 +64,7 @@ export async function triggerAutoResync(userId: string): Promise<void> {
       }
     }
   } catch (error) {
-    logger.error("[auto-resync] Sync failed:", error);
+    logger.error(`[auto-resync] Sync failed for ${userId}:`, error);
     const paused = await pauseAllSearches();
     logger.warn(`[auto-resync] Paused ${paused} searches, sending email notification`);
     try {
@@ -65,6 +74,8 @@ export async function triggerAutoResync(userId: string): Promise<void> {
     }
   } finally {
     clearTimeout(timeout);
+    await del(userKey).catch(() => {});
+    await del(VNC_LOCK_KEY).catch(() => {});
     resyncInProgress = false;
   }
 }
