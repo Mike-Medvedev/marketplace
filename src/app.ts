@@ -11,6 +11,7 @@ import { usersRouter } from "@/features/users/users.routes.ts";
 import { webhookRouter } from "@/features/webhooks/webhooks.routes.ts";
 import { syncRouter } from "@/features/sync/sync.routes.ts";
 import { facebookRouter } from "@/features/facebook/facebook.routes.ts";
+import logger from "@/infra/logger/logger.ts";
 import packageJson from "../package.json" with { type: "json" };
 import { createProxyMiddleware } from "http-proxy-middleware";
 import { env } from "@/configs/env";
@@ -32,7 +33,22 @@ app.get("/health/chromium", async (_req, res) => {
   } catch (e) {
     results["selenium_error"] = (e as Error).message;
   }
-
+  try {
+    const r = await fetch("http://chromium-app:7900", {
+      signal: AbortSignal.timeout(5000),
+    });
+    results["novnc_shortname_7900"] = r.status;
+  } catch (e) {
+    results["novnc_shortname_7900_error"] = (e as Error).message;
+  }
+  try {
+    const r = await fetch("http://chromium-app:7900/vnc.html", {
+      signal: AbortSignal.timeout(5000),
+    });
+    results["novnc_shortname_vnc_html"] = r.status;
+  } catch (e) {
+    results["novnc_shortname_vnc_html_error"] = (e as Error).message;
+  }
   try {
     const r = await fetch(
       "http://chromium-app.internal.kindocean-fa25625e.eastus2.azurecontainerapps.io:7900",
@@ -52,6 +68,24 @@ app.use(
     changeOrigin: true,
     ws: true,
     pathRewrite: { "^/novnc": "" },
+    on: {
+      error(err, _req, res) {
+        logger.error("[novnc-proxy] Proxy error:", err);
+
+        if ("writeHead" in res && !res.headersSent) {
+          res.writeHead(502, { "Content-Type": "application/json" });
+          res.end(
+            JSON.stringify({
+              success: false,
+              error: { message: "noVNC proxy failed" },
+            }),
+          );
+          return;
+        }
+
+        res.end();
+      },
+    },
   }),
 );
 
