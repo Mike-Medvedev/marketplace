@@ -56,15 +56,15 @@ app.get("/chromium-test", async (_req, res) => {
     });
   }
 });
-// Proxy everything starting with /vnc/ to the target
+// Proxy everything starting at browser-vnc
 app.use(
-  "/vnc",
+  "/browser-vnc",
   createProxyMiddleware({
     target: "http://127.0.0.1:6080",
     changeOrigin: true,
     ws: true,
     pathRewrite: {
-      "^/vnc": "", // Optional: rewrites /vnc/vnc.html to /vnc.html
+      "^/browser-vnc": "", // Strips the prefix before sending to Chromium
     },
   }),
 );
