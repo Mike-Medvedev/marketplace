@@ -23,22 +23,24 @@ app.use(responseHelpers);
 app.get("/health", (_req, res) => {
   res.status(200).json({ success: true, data: { status: "healthy" } });
 });
-
 app.get("/health/chromium", async (_req, res) => {
-  const results: Record<string, string> = {};
+  const results: Record<string, unknown> = {};
 
-  const urls = [
-    "http://chromium-app.internal.kindocean-fa25625e.eastus2.azurecontainerapps.io:7900",
-    "https://chromium-app.internal.kindocean-fa25625e.eastus2.azurecontainerapps.io:7900",
-  ];
+  try {
+    const r = await fetch(`${env.CHROMIUM_URL}/status`);
+    results["selenium_4444"] = await r.json();
+  } catch (e) {
+    results["selenium_4444_error"] = (e as Error).message;
+  }
 
-  for (const url of urls) {
-    try {
-      const r = await fetch(url, { signal: AbortSignal.timeout(5000) });
-      results[url] = `${r.status}`;
-    } catch (e) {
-      results[url] = (e as Error).message;
-    }
+  try {
+    const r = await fetch(
+      `http://chromium-app.internal.kindocean-fa25625e.eastus2.azurecontainerapps.io:7900`,
+      { signal: AbortSignal.timeout(5000) },
+    );
+    results["novnc_7900"] = r.status;
+  } catch (e) {
+    results["novnc_7900_error"] = (e as Error).message;
   }
 
   res.json(results);
