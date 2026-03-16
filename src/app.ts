@@ -28,14 +28,14 @@ app.get("/health/chromium", async (_req, res) => {
 
   try {
     const r = await fetch(`${env.CHROMIUM_URL}/status`);
-    results["selenium_4444"] = await r.json();
+    results["selenium"] = await r.json();
   } catch (e) {
-    results["selenium_4444_error"] = (e as Error).message;
+    results["selenium_error"] = (e as Error).message;
   }
 
   try {
     const r = await fetch(
-      `http://chromium-app.internal.kindocean-fa25625e.eastus2.azurecontainerapps.io:7900`,
+      "http://chromium-app.internal.kindocean-fa25625e.eastus2.azurecontainerapps.io:7900",
       { signal: AbortSignal.timeout(5000) },
     );
     results["novnc_7900"] = r.status;
