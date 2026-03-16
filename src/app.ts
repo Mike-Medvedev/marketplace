@@ -23,13 +23,13 @@ app.use(responseHelpers);
 app.get("/health", (_req, res) => {
   res.status(200).json({ success: true, data: { status: "healthy" } });
 });
+
 app.get("/health/chromium", async (_req, res) => {
   const results: Record<string, string> = {};
 
   const urls = [
-    "http://chromium-app.internal.kindocean-fa25625e.eastus2.azurecontainerapps.io:4444/status",
-    "https://chromium-app.internal.kindocean-fa25625e.eastus2.azurecontainerapps.io/status",
-    "http://chromium-app:4444/status",
+    "http://chromium-app.internal.kindocean-fa25625e.eastus2.azurecontainerapps.io:7900",
+    "https://chromium-app.internal.kindocean-fa25625e.eastus2.azurecontainerapps.io:7900",
   ];
 
   for (const url of urls) {
