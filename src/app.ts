@@ -56,6 +56,14 @@ app.get("/chromium-test", async (_req, res) => {
     });
   }
 });
+app.use(
+  "/vnc.html",
+  createProxyMiddleware({
+    target: "http://127.0.0.1:6080",
+    changeOrigin: true,
+    ws: true,
+  }),
+);
 app.use("/webhook", webhookRouter);
 
 app.use("/api/v1", validateUser, scrapeRouter);
