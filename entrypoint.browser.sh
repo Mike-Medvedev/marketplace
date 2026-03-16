@@ -56,7 +56,8 @@ x11vnc \
 echo "Starting noVNC..."
 /opt/novnc/utils/novnc_proxy \
   --vnc "localhost:${VNC_PORT}" \
-  --listen 0.0.0.0:"${NOVNC_PORT}" &
+  --listen 0.0.0.0:"${NOVNC_PORT}" \
+  --web /opt/novnc &
 
 echo "Locating Chromium..."
 CHROME_BIN="$(
@@ -77,10 +78,14 @@ echo "Starting Chromium (headful kiosk, CDP on port ${CHROME_CDP_PORT})..."
   --no-sandbox \
   --disable-dev-shm-usage \
   --disable-gpu \
+  --disable-gpu-compositing \
+  --disable-gpu-sandbox \
+  --disable-software-rasterizer \
+  --use-gl=swiftshader \
   --remote-debugging-address=0.0.0.0 \
   --remote-debugging-port="${CHROME_CDP_PORT}" \
   --remote-allow-origins=* \
-  --user-data-dir=/tmp/chrome-profile \
+  --user-data-dir="${CHROME_PROFILE_DIR:-/tmp/chrome-profile}" \
   --window-size="${SCREEN_WIDTH},${SCREEN_HEIGHT}" \
   --window-position=0,0 \
   --kiosk \
@@ -88,8 +93,12 @@ echo "Starting Chromium (headful kiosk, CDP on port ${CHROME_CDP_PORT})..."
   --no-default-browser-check \
   --disable-infobars \
   --disable-translate \
-  --disable-features=TranslateUI \
+  --disable-features=TranslateUI,InfiniteSessionRestore,InfoBars \
   --disable-popup-blocking \
+  --test-type \
+  --enable-automation \
+  --password-store=basic \
+  --disable-background-networking \
   about:blank &
 
 echo "Waiting for CDP to be ready..."

@@ -1,5 +1,5 @@
 import type { Page, BrowserContext, Request as PlaywrightRequest } from "playwright-core";
-import { connectBrowser, closeBrowserSession } from "./sync.browser.ts";
+import { connectBrowser, closeBrowserSession, acquireDisplayPage, releaseDisplayPage } from "./sync.browser.ts";
 import { setSession } from "@/features/facebook/facebook.repository.ts";
 import { LOGIN_POLL_INTERVAL_MS, SESSION_CAPTURE_TIMEOUT_MS } from "./sync.constants.ts";
 import logger from "@/infra/logger/logger.ts";
@@ -195,8 +195,10 @@ async function triggerMarketplaceGraphQL(page: Page): Promise<void> {
 
 /**
  * Runs the full Facebook identity sync flow against a remote Chromium instance.
- * Connects via CDP, checks login state, waits for human login if needed,
- * navigates to Marketplace, captures the authenticated session, and stores it.
+ *
+ * Uses an isolated BrowserContext so multiple users can sync concurrently.
+ * If the user isn't logged in, acquires exclusive access to the visible
+ * VNC display page for the manual login, then releases it immediately after.
  */
 export async function performSync(
   userId: string,
@@ -218,25 +220,46 @@ export async function performSync(
     const alreadyLoggedIn = await isLoggedIn(page);
 
     if (!alreadyLoggedIn) {
-      onStep("awaiting_login", "Login required. Waiting for user to log in...");
-      await page.goto("https://www.facebook.com/login", {
+      onStep("awaiting_login", "Login required. Acquiring browser display...");
+
+      const displayPage = await acquireDisplayPage(session);
+      if (!displayPage) {
+        onStep("vnc_busy", "Another user is logging in. Please try again shortly.");
+        return { success: false, needsLogin: true };
+      }
+
+      try {
+        await displayPage.goto("https://www.facebook.com/login", {
+          waitUntil: "domcontentloaded",
+          timeout: 60_000,
+        });
+        await displayPage.waitForTimeout(2000);
+        await dismissNotificationPrompt(displayPage);
+
+        onStep("needs_login", "Login required. Waiting for user to log in...");
+
+        await waitForLogin(displayPage, signal);
+        if (signal.aborted) return { success: false, needsLogin: true };
+
+        onStep(
+          "login_detected",
+          'Login detected. If Facebook asks, click "Trust this device", "Save browser", or "Continue".',
+        );
+        await displayPage.waitForTimeout(5000);
+        await dismissNotificationPrompt(displayPage);
+
+        const defaultContext = displayPage.context();
+        const cookies = await defaultContext.cookies("https://www.facebook.com");
+        await context.addCookies(cookies);
+      } finally {
+        await releaseDisplayPage(session);
+      }
+
+      await page.goto("https://www.facebook.com/", {
         waitUntil: "domcontentloaded",
         timeout: 60_000,
       });
-      await page.waitForTimeout(2000);
-      await dismissNotificationPrompt(page);
-
-      onStep("needs_login", "Login required. Waiting for user to log in...");
-
-      await waitForLogin(page, signal);
-      if (signal.aborted) return { success: false, needsLogin: true };
-
-      onStep(
-        "login_detected",
-        'Login detected. If Facebook asks, click "Trust this device", "Save browser", or "Continue".',
-      );
-      await page.waitForTimeout(5000);
-      await dismissNotificationPrompt(page);
+      await page.waitForTimeout(3000);
     } else {
       onStep("session_restored", "Already logged in via saved profile.");
     }

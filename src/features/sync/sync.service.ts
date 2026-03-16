@@ -2,7 +2,7 @@ import { pauseAllSearches, resumeAllSearches } from "@/features/searches/searche
 import { sendResyncEmail } from "@/infra/email/email.client.ts";
 import { env } from "@/configs/env.ts";
 import { performSync } from "./sync.playwright.ts";
-import { SYNC_TIMEOUT_MS, syncUserKey, VNC_LOCK_KEY } from "./sync.constants.ts";
+import { SYNC_TIMEOUT_MS, syncUserKey } from "./sync.constants.ts";
 import { acquireLock, del } from "@/infra/redis/redis.client.ts";
 import logger from "@/infra/logger/logger.ts";
 
@@ -29,13 +29,6 @@ export async function triggerAutoResync(userId: string): Promise<void> {
 
   const userKey = syncUserKey(userId);
   logger.info(`[auto-resync] Starting automated resync for ${userId}`);
-
-  const gotVncLock = await acquireLock(VNC_LOCK_KEY, userId, SYNC_TIMEOUT_MS / 1000);
-  if (!gotVncLock) {
-    logger.warn("[auto-resync] VNC is in use by another sync, skipping");
-    resyncInProgress = false;
-    return;
-  }
 
   await acquireLock(userKey, "1", SYNC_TIMEOUT_MS / 1000);
 
@@ -75,7 +68,6 @@ export async function triggerAutoResync(userId: string): Promise<void> {
   } finally {
     clearTimeout(timeout);
     await del(userKey).catch(() => {});
-    await del(VNC_LOCK_KEY).catch(() => {});
     resyncInProgress = false;
   }
 }

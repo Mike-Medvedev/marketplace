@@ -8,6 +8,7 @@ ENV DEBIAN_FRONTEND=noninteractive \
     VNC_PORT=5900 \
     NOVNC_PORT=6080 \
     CHROME_CDP_PORT=9222 \
+    CHROME_PROFILE_DIR=/tmp/chrome-profile \
     PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -29,6 +30,7 @@ RUN git clone --depth 1 https://github.com/novnc/noVNC.git /opt/novnc \
     && git clone --depth 1 https://github.com/novnc/websockify.git /opt/novnc/utils/websockify
 
 COPY novnc-index.html /opt/novnc/index.html
+COPY novnc-index.html /opt/novnc/vnc.html
 
 RUN npx -y playwright@1.58.2 install chromium
 

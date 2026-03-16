@@ -2,7 +2,7 @@ import { isSessionValid } from "@/features/facebook/facebook.service.ts";
 import { resumeAllSearches } from "@/features/searches/searches.repository.ts";
 import { performSync } from "./sync.playwright.ts";
 import { resetResyncFlag } from "./sync.service.ts";
-import { SYNC_TIMEOUT_MS, syncUserKey, VNC_LOCK_KEY } from "./sync.constants.ts";
+import { SYNC_TIMEOUT_MS, syncUserKey } from "./sync.constants.ts";
 import { acquireLock, read, del } from "@/infra/redis/redis.client.ts";
 import { NoActiveSyncError } from "@/shared/errors/errors.ts";
 import logger from "@/infra/logger/logger.ts";
@@ -30,19 +30,8 @@ export const SyncController = {
       return;
     }
 
-    const gotVncLock = await acquireLock(VNC_LOCK_KEY, userId, SYNC_TIMEOUT_MS / 1000);
-    if (!gotVncLock) {
-      sendSSE(res, {
-        status: "error",
-        message: "Another user is currently syncing. Please try again in a few minutes.",
-      });
-      res.end();
-      return;
-    }
-
-    const gotUserLock = await acquireLock(userKey, "1", SYNC_TIMEOUT_MS / 1000);
-    if (!gotUserLock) {
-      await del(VNC_LOCK_KEY).catch(() => {});
+    const gotLock = await acquireLock(userKey, "1", SYNC_TIMEOUT_MS / 1000);
+    if (!gotLock) {
       sendSSE(res, { status: "error", message: "A sync is already in progress for this account" });
       res.end();
       return;
@@ -57,15 +46,10 @@ export const SyncController = {
       timeout = null;
     };
 
-    const releaseLocks = async () => {
-      await del(userKey).catch(() => {});
-      await del(VNC_LOCK_KEY).catch(() => {});
-    };
-
     req.on("close", () => {
       logger.info(`[sync] Client disconnected, aborting sync for ${userId}`);
       cleanup();
-      releaseLocks();
+      del(userKey).catch(() => {});
     });
 
     timeout = setTimeout(() => {
@@ -100,7 +84,7 @@ export const SyncController = {
       });
     } finally {
       cleanup();
-      await releaseLocks();
+      await del(userKey).catch(() => {});
       res.end();
     }
   },
@@ -113,7 +97,6 @@ export const SyncController = {
 
     logger.info(`[sync-abort] Aborting sync for ${userId}`);
     await del(userKey);
-    await del(VNC_LOCK_KEY);
     resetResyncFlag();
 
     res.success(null);
