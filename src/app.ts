@@ -35,7 +35,7 @@ app.get("/health/chromium", async (_req, res) => {
 app.use(
   "/novnc",
   createProxyMiddleware({
-    target: `${env.CHROMIUM_URL}:7900`,
+    target: "http://chromium-app.internal.kindocean-fa25625e.eastus2.azurecontainerapps.io:7900",
     changeOrigin: true,
     ws: true,
     pathRewrite: { "^/novnc": "" },
