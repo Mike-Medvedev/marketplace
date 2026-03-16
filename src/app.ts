@@ -24,14 +24,24 @@ app.get("/health", (_req, res) => {
   res.status(200).json({ success: true, data: { status: "healthy" } });
 });
 app.get("/health/chromium", async (_req, res) => {
-  try {
-    const http = await fetch(
-      "http://chromium-app.internal.kindocean-fa25625e.eastus2.azurecontainerapps.io:4444/status",
-    );
-    res.json({ http: http.status });
-  } catch (e) {
-    res.json({ http_error: (e as Error).message });
+  const results: Record<string, string> = {};
+
+  const urls = [
+    "http://chromium-app.internal.kindocean-fa25625e.eastus2.azurecontainerapps.io:4444/status",
+    "https://chromium-app.internal.kindocean-fa25625e.eastus2.azurecontainerapps.io/status",
+    "http://chromium-app:4444/status",
+  ];
+
+  for (const url of urls) {
+    try {
+      const r = await fetch(url, { signal: AbortSignal.timeout(5000) });
+      results[url] = `${r.status}`;
+    } catch (e) {
+      results[url] = (e as Error).message;
+    }
   }
+
+  res.json(results);
 });
 app.use(
   "/novnc",
