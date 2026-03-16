@@ -23,6 +23,15 @@ app.use(responseHelpers);
 app.get("/health", (_req, res) => {
   res.status(200).json({ success: true, data: { status: "healthy" } });
 });
+app.get("/health/chromium", async (_req, res) => {
+  try {
+    const response = await fetch(`${env.CHROMIUM_URL}/status`);
+    const data = await response.json();
+    res.json(data);
+  } catch (err) {
+    res.status(500).json({ error: (err as Error).message });
+  }
+});
 app.use(
   "/novnc",
   createProxyMiddleware({
