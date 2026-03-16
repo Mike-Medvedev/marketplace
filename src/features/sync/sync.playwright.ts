@@ -1,10 +1,11 @@
 import type { Page, BrowserContext, Request as PlaywrightRequest } from "playwright-core";
-import { connectBrowser, closeBrowserSession, getDebuggerUrl } from "./sync.browser.ts";
+import { connectBrowser, closeBrowserSession } from "./sync.browser.ts";
+import { env } from "@/configs/env.ts";
 import { setSession } from "@/features/facebook/facebook.repository.ts";
 import { LOGIN_POLL_INTERVAL_MS, SESSION_CAPTURE_TIMEOUT_MS } from "./sync.constants.ts";
 import logger from "@/infra/logger/logger.ts";
 
-export type SyncStepCallback = (step: string, message: string, debuggerUrl?: string) => void;
+export type SyncStepCallback = (step: string, message: string, vncUrl?: string) => void;
 
 export interface SyncResult {
   success: boolean;
@@ -160,19 +161,16 @@ async function triggerMarketplaceGraphQL(page: Page): Promise<void> {
 }
 
 /**
- * Runs the full Facebook identity sync flow against a remote Browserless instance.
+ * Runs the full Facebook identity sync flow against a remote Chromium instance.
  * Connects via CDP, checks login state, waits for human login if needed,
  * navigates to Marketplace, captures the authenticated session, and stores it.
- *
- * @param onStep - callback fired on each progress step (for SSE forwarding)
- * @param signal - AbortSignal to cancel the sync early
  */
 export async function performSync(
   userId: string,
   onStep: SyncStepCallback,
   signal: AbortSignal,
 ): Promise<SyncResult> {
-  const session = await connectBrowser(userId);
+  const session = await connectBrowser();
   const { page, context } = session;
 
   try {
@@ -195,8 +193,7 @@ export async function performSync(
       await page.waitForTimeout(2000);
       await dismissNotificationPrompt(page);
 
-      const debuggerUrl = getDebuggerUrl(userId);
-      onStep("needs_login", "Login required. Waiting for user to log in...", debuggerUrl);
+      onStep("needs_login", "Login required. Waiting for user to log in...", env.CHROMIUM_VNC_URL);
 
       await waitForLogin(page, signal);
       if (signal.aborted) return { success: false, needsLogin: true };

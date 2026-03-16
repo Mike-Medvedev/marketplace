@@ -58,13 +58,13 @@ export const SyncController = {
     try {
       const result = await performSync(
         userId,
-        (step, message, debuggerUrl) => {
+        (step, message, vncUrl) => {
           logger.info(`[sync] [${step}] ${message}`);
           sendSSE(res, {
             status: "status_update",
             message,
             step,
-            ...(debuggerUrl ? { debuggerUrl } : {}),
+            ...(vncUrl ? { vncUrl } : {}),
           });
         },
         abortController.signal,

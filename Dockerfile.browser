@@ -1,0 +1,18 @@
+FROM debian:bookworm-slim
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    chromium \
+    xvfb \
+    x11vnc \
+    websockify \
+    dbus-x11 \
+    && apt-get clean && rm -rf /var/lib/apt/lists/*
+
+ENV DISPLAY=:99
+
+COPY entrypoint.browser.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+
+EXPOSE 9222 6080
+
+CMD ["/entrypoint.sh"]
