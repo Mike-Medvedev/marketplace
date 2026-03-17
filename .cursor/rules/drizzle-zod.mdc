@@ -20,7 +20,7 @@ import { searches } from "@/infra/db/schema.ts";
 ```typescript
 // ❌ BAD — hand-written Zod schema duplicating DB columns
 export const storedSearchSchema = z.object({
-  id: z.string().uuid(),
+  id: z.uuid(),
   query: z.string(),
   status: z.enum(["running", "paused"]),
   createdAt: z.date(),

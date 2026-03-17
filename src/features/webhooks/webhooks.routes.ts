@@ -1,5 +1,9 @@
 import express from "express";
 import { TypedRouter } from "meebo";
+import {
+  analysisWebhookRequestSchema,
+  analysisWebhookResponseSchema,
+} from "@/features/analysis/analysis.types.ts";
 import { WebhooksController } from "./webhooks.controller.ts";
 
 export const webhookRouter = TypedRouter(express.Router(), {
@@ -15,6 +19,17 @@ webhookRouter.post(
     skipValidation: true,
   },
   WebhooksController.handleAnalyzedListings,
+);
+
+webhookRouter.post(
+  "/roboflow-filter",
+  {
+    operationId: "webhookRoboflowFilter",
+    summary: "Receive listings, run them through Roboflow analysis, and return filtered results",
+    request: analysisWebhookRequestSchema,
+    response: analysisWebhookResponseSchema,
+  },
+  WebhooksController.handleRoboflowFilter,
 );
 
 webhookRouter.post(

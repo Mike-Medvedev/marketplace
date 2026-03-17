@@ -1,6 +1,8 @@
 import { setSession } from "@/features/facebook/facebook.repository.ts";
 import { publishSyncEvent } from "@/infra/redis/redis.pubsub.ts";
+import { filterListingsViaRoboflow } from "@/features/analysis/analysis.service.ts";
 import logger from "@/infra/logger/logger.ts";
+import type { AnalysisWebhookRequest } from "@/features/analysis/analysis.types.ts";
 import type { Request, Response } from "express";
 
 export const WebhooksController = {
@@ -8,6 +10,20 @@ export const WebhooksController = {
     logger.info("Received analyzed listings in webhook, notifying user");
     logger.info(req.body);
     res.success(null);
+  },
+
+  async handleRoboflowFilter(req: Request<unknown, unknown, AnalysisWebhookRequest>, res: Response) {
+    const { searchId, runId, listings } = req.body;
+    logger.info(
+      `[roboflow-filter] Received ${listings.length} listings for search ${searchId}, run ${runId}`,
+    );
+
+    const filtered = await filterListingsViaRoboflow(listings);
+
+    logger.info(
+      `[roboflow-filter] Returning ${filtered.length}/${listings.length} listings for search ${searchId}`,
+    );
+    res.json({ listings: filtered });
   },
 
   async handleRefresh(req: Request, res: Response) {

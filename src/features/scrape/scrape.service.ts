@@ -56,7 +56,9 @@ export async function searchMarketPlace(
     userAgent,
   } = params;
 
-  const isAuthenticated = userId ? await hasSession(userId) : false;
+  let isAuthenticated = userId ? await hasSession(userId) : false;
+  let sessionExpired = false;
+
   logger.info(
     `[searchMarketPlace] Starting search — query="${params.query}", location="${params.location}", minPrice=${params.minPrice}, maxPrice=${params.maxPrice}, dateListedDays=${params.dateListedDays}, pageCount=${pageCount}, mode=${isAuthenticated ? "authenticated" : "anonymous"}`,
   );
@@ -71,7 +73,18 @@ export async function searchMarketPlace(
 
   if (pageCount == null || pageCount <= 1) {
     logger.info(`[searchMarketPlace] Fetching single page...`);
-    return fetchOnePage(cursor, listingFetchDelayMs, searchConfig, userId, isAuthenticated, userAgent);
+    try {
+      const result = await fetchOnePage(cursor, listingFetchDelayMs, searchConfig, userId, isAuthenticated, userAgent);
+      return { ...result, sessionExpired };
+    } catch (error) {
+      if (isAuthenticated && error instanceof FacebookSessionExpiredError) {
+        logger.warn(`[searchMarketPlace] Session expired, falling back to anonymous mode`);
+        sessionExpired = true;
+        const result = await fetchOnePage(cursor, listingFetchDelayMs, searchConfig, userId, false, userAgent);
+        return { ...result, sessionExpired };
+      }
+      throw error;
+    }
   }
 
   const allListings: Omit<MarketplaceListing, "photos" | "description">[] = [];
@@ -79,11 +92,25 @@ export async function searchMarketPlace(
   let pageNum = 1;
 
   do {
-    const page = await fetchOnePage(nextCursor, listingFetchDelayMs, searchConfig, userId, isAuthenticated, userAgent);
-    allListings.push(...page.listings);
-    pageNum++;
-    nextCursor = page.nextCursor;
-    logger.info("Fetched one page of listings...");
+    try {
+      const page = await fetchOnePage(nextCursor, listingFetchDelayMs, searchConfig, userId, isAuthenticated, userAgent);
+      allListings.push(...page.listings);
+      pageNum++;
+      nextCursor = page.nextCursor;
+      logger.info("Fetched one page of listings...");
+    } catch (error) {
+      if (isAuthenticated && error instanceof FacebookSessionExpiredError) {
+        logger.warn(`[searchMarketPlace] Session expired mid-pagination, switching to anonymous mode`);
+        isAuthenticated = false;
+        sessionExpired = true;
+        const page = await fetchOnePage(nextCursor, listingFetchDelayMs, searchConfig, userId, false, userAgent);
+        allListings.push(...page.listings);
+        pageNum++;
+        nextCursor = page.nextCursor;
+      } else {
+        throw error;
+      }
+    }
     if (nextCursor != null && pageNum <= pageCount && pageDelayMs > 0) {
       logger.info(`Delaying next page to avoid rate limit for ${pageDelayMs}ms`);
       await delay(pageDelayMs);
@@ -94,8 +121,11 @@ export async function searchMarketPlace(
   return {
     listings: allListings,
     nextCursor,
+    sessionExpired,
   };
 }
+
+type FetchOnePageResult = Omit<SearchMarketPlaceResult, "sessionExpired">;
 
 async function fetchOnePage(
   cursor: string | null,
@@ -104,7 +134,7 @@ async function fetchOnePage(
   userId?: string,
   isAuthenticated: boolean = true,
   userAgent?: string,
-): Promise<SearchMarketPlaceResult> {
+): Promise<FetchOnePageResult> {
   const mode = isAuthenticated ? "authenticated" : "anonymous";
   logger.info(`[fetchOnePage] Requesting Facebook GraphQL [${mode}] (cursor=${cursor ? "yes" : "none"})`);
 

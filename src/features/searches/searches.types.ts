@@ -102,11 +102,12 @@ export const listingSchema = z.object({
 });
 
 export const searchRunResultsSchema = z.object({
-  runId: z.string().uuid(),
+  runId: z.uuid(),
   executedAt: z.union([z.string(), z.date()]),
   filterStatus: filterStatusSchema,
   listings: z.array(listingSchema),
   filteredListings: z.array(listingSchema).nullable(),
+  sessionExpired: z.boolean(),
 });
 
 export type FilterStatus = z.infer<typeof filterStatusSchema>;
@@ -120,7 +121,7 @@ export type SearchRun = z.infer<typeof searchRunSchema>;
 export type SearchRunResults = z.infer<typeof searchRunResultsSchema>;
 export type SearchEvent =
   | { type: "executing"; searchId: string }
-  | { type: "completed"; searchId: string; runId: string; listingCount: number }
+  | { type: "completed"; searchId: string; runId: string; listingCount: number; sessionExpired: boolean }
   | { type: "filter_completed"; searchId: string; runId: string; filteredListingCount: number }
   | { type: "filter_failed"; searchId: string; runId: string; error: string }
   | { type: "failed"; searchId: string; error: string; errorName: string };

@@ -68,6 +68,8 @@ export interface SearchMarketPlaceResult {
   listings: Omit<MarketplaceListing, "photos" | "description">[];
   /** Cursor for next page. Use in next call to continue pagination. */
   nextCursor: string | null;
+  /** True when an authenticated request failed and the search fell back to anonymous mode. */
+  sessionExpired: boolean;
 }
 
 export interface SearchResponseEdge {

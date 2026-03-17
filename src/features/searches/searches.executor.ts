@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { searchMarketPlace } from "@/features/scrape/scrape.service.ts";
+import { triggerAutoResync } from "@/features/sync/sync.service.ts";
 import { filterListings } from "@/features/filter/filter.service.ts";
 import { write } from "@/infra/redis/redis.client.ts";
 import { publishSearchEvent } from "@/infra/redis/redis.pubsub.ts";
@@ -39,15 +40,21 @@ function deduplicateListings(
   });
 }
 
+interface ScrapeCountryResult {
+  listings: SearchMarketPlaceResult["listings"];
+  sessionExpired: boolean;
+}
+
 async function scrapeCountry(
   baseParams: SearchMarketPlaceParams,
   country: string,
   userId: string,
-): Promise<SearchMarketPlaceResult["listings"]> {
+): Promise<ScrapeCountryResult> {
   const coverage = COUNTRY_COVERAGE[country];
   if (!coverage) throw new Error(`Unsupported country: ${country}`);
 
   const allListings: SearchMarketPlaceResult["listings"] = [];
+  let sessionExpired = false;
 
   for (let i = 0; i < coverage.centers.length; i++) {
     const center = coverage.centers[i]!;
@@ -60,15 +67,16 @@ async function scrapeCountry(
       latitude: center.lat,
       longitude: center.lng,
     };
-    const { listings } = await searchMarketPlace(params, userId);
-    allListings.push(...listings);
+    const result = await searchMarketPlace(params, userId);
+    allListings.push(...result.listings);
+    if (result.sessionExpired) sessionExpired = true;
 
     if (i < coverage.centers.length - 1) {
       await delay(DEFAULT_PAGE_DELAY_MS);
     }
   }
 
-  return deduplicateListings(allListings);
+  return { listings: deduplicateListings(allListings), sessionExpired };
 }
 
 function resultsKey(searchId: string, runId: string): string {
@@ -147,7 +155,14 @@ async function runWebhookFilterPhase(
       throw new Error(`Invalid webhook response shape: ${parsed.error.message}`);
     }
 
-    const filtered = parsed.data.listings;
+    const originalIds = new Set(listings.map((l) => l.id));
+    const filtered = parsed.data.listings.filter((l) => {
+      if (!originalIds.has(l.id)) {
+        logger.warn(`[runSearch] Webhook returned unknown listing ID ${l.id} — dropping`);
+        return false;
+      }
+      return true;
+    });
     const redisKey = filteredResultsKey(search.id, runId);
     await write(redisKey, JSON.stringify(filtered), RESULTS_TTL_SECONDS);
     await repository.updateRunFilterResults(runId, redisKey, filtered.length, "completed");
@@ -191,9 +206,24 @@ export async function runSearch(search: StoredSearch): Promise<SearchRunResults>
       `[runSearch] Executing "${search.query}" (${search.id}) — ${isCountrySearch ? `country=${search.country}` : `location=${search.location}`}, pageCount=${params.pageCount}`,
     );
 
-    const listings = isCountrySearch
-      ? await scrapeCountry(params, search.country!, search.userId)
-      : (await searchMarketPlace(params, search.userId)).listings;
+    let listings: SearchMarketPlaceResult["listings"];
+    let sessionExpired: boolean;
+
+    if (isCountrySearch) {
+      const result = await scrapeCountry(params, search.country!, search.userId);
+      listings = result.listings;
+      sessionExpired = result.sessionExpired;
+    } else {
+      const result = await searchMarketPlace(params, search.userId);
+      listings = result.listings;
+      sessionExpired = result.sessionExpired;
+    }
+
+    if (sessionExpired) {
+      triggerAutoResync(search.userId).catch((err) =>
+        logger.error(`[runSearch] Auto-resync failed for user ${search.userId}:`, err),
+      );
+    }
 
     const runId = randomUUID();
     const redisKey = resultsKey(search.id, runId);
@@ -211,6 +241,7 @@ export async function runSearch(search: StoredSearch): Promise<SearchRunResults>
       searchId: search.id,
       runId,
       listingCount: listings.length,
+      sessionExpired,
     }).catch((e) => logger.error(`[runSearch] Failed to publish completed event:`, e));
 
     if (search.prompt) {
@@ -225,6 +256,7 @@ export async function runSearch(search: StoredSearch): Promise<SearchRunResults>
       filterStatus,
       listings,
       filteredListings: null,
+      sessionExpired,
     };
   } catch (error) {
     publishSearchEvent(search.id, {
