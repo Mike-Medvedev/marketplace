@@ -26,7 +26,7 @@ export const createSearchBodySchema = createInsertSchema(searches, {
   query: (schema) => schema.min(1),
   location: (schema) => schema.min(1),
   notificationTarget: (schema) => schema.min(1),
-  listingsPerCheck: (schema) => schema.min(1),
+  listingsPerCheck: (schema) => schema.min(1).max(20),
 }).pick({
   query: true,
   location: true,
@@ -40,7 +40,9 @@ export const createSearchBodySchema = createInsertSchema(searches, {
   prompt: true,
 });
 
-export const updateSearchBodySchema = createUpdateSchema(searches).pick({
+export const updateSearchBodySchema = createUpdateSchema(searches, {
+  listingsPerCheck: (schema) => schema.max(20),
+}).pick({
   query: true,
   location: true,
   minPrice: true,

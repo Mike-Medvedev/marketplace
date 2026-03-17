@@ -85,7 +85,7 @@ export const searchMarketPlaceParamsSchema = z
     minPrice: z.coerce.number().optional(),
     maxPrice: z.coerce.number().optional(),
     dateListedDays: z.coerce.number().pipe(z.union([z.literal(1), z.literal(7), z.literal(30)])).optional(),
-    pageCount: z.coerce.number().optional(),
+    pageCount: z.coerce.number().max(20).optional(),
     pageDelayMs: z.coerce.number().optional(),
     listingFetchDelayMs: z.coerce.number().optional(),
     searchFrequency: searchFrequencySchema.optional(),
