@@ -21,6 +21,7 @@ export const storedSearchSchema = createSelectSchema(searches);
 export const activeSearchSchema = storedSearchSchema.extend({
   isScheduled: z.boolean(),
   nextRunAt: z.string().nullable(),
+  isExecuting: z.boolean(),
 });
 
 const countrySchema = z.enum(SUPPORTED_COUNTRIES as [string, ...string[]]);

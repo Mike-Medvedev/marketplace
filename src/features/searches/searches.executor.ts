@@ -3,7 +3,7 @@ import { searchMarketPlace } from "@/features/scrape/scrape.service.ts";
 import { triggerAutoResync } from "@/features/sync/sync.service.ts";
 import { FacebookSessionExpiredError } from "@/shared/errors/errors.ts";
 import { filterListings } from "@/features/filter/filter.service.ts";
-import { write } from "@/infra/redis/redis.client.ts";
+import { read, write, del } from "@/infra/redis/redis.client.ts";
 import { publishSearchEvent } from "@/infra/redis/redis.pubsub.ts";
 import { RESULTS_TTL_SECONDS } from "@/features/scheduler/scheduler.constants.ts";
 import { DEFAULT_PAGE_DELAY_MS } from "@/features/scrape/scrape.constants.ts";
@@ -16,8 +16,19 @@ import { listingSchema } from "./searches.types.ts";
 import type { StoredSearch, SearchRunResults, FilterStatus } from "./searches.types.ts";
 import type { SearchMarketPlaceParams, SearchMarketPlaceResult } from "@/features/scrape/scrape.types.ts";
 
-const WEBHOOK_TIMEOUT_MS = 120_000;
+const WEBHOOK_TIMEOUT_MS = 20 * 60 * 1000;
 const webhookResponseSchema = z.object({ listings: z.array(listingSchema) });
+
+const EXECUTING_TTL_SECONDS = 10 * 60;
+
+function executingKey(searchId: string): string {
+  return `search:${searchId}:executing`;
+}
+
+export async function isSearchExecuting(searchId: string): Promise<boolean> {
+  const val = await read(executingKey(searchId));
+  return val !== null;
+}
 
 function toScrapeParams(search: StoredSearch): SearchMarketPlaceParams {
   const params: SearchMarketPlaceParams = {
@@ -188,6 +199,8 @@ async function runWebhookFilterPhase(
  * asynchronously and publishes SSE events when it completes or fails.
  */
 export async function runSearch(search: StoredSearch): Promise<SearchRunResults> {
+  await write(executingKey(search.id), "1", EXECUTING_TTL_SECONDS);
+
   publishSearchEvent(search.id, { type: "executing", searchId: search.id }).catch((e) =>
     logger.error(`[runSearch] Failed to publish executing event:`, e),
   );
@@ -208,6 +221,8 @@ export async function runSearch(search: StoredSearch): Promise<SearchRunResults>
       const result = await searchMarketPlace(params, search.userId);
       listings = result.listings;
     }
+
+    await del(executingKey(search.id));
 
     const runId = randomUUID();
     const redisKey = resultsKey(search.id, runId);
@@ -241,6 +256,8 @@ export async function runSearch(search: StoredSearch): Promise<SearchRunResults>
       filteredListings: null,
     };
   } catch (error) {
+    await del(executingKey(search.id)).catch(() => {});
+
     if (error instanceof FacebookSessionExpiredError) {
       triggerAutoResync(search.userId).catch((err) =>
         logger.error(`[runSearch] Auto-resync failed for user ${search.userId}:`, err),

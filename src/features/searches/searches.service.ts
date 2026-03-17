@@ -8,27 +8,28 @@ import {
   isScheduled,
   getNextRunAt,
 } from "@/features/scheduler/scheduler.service.ts";
-import { runSearch } from "./searches.executor.ts";
+import { runSearch, isSearchExecuting } from "./searches.executor.ts";
 import { SearchNotFoundError, DuplicateSearchError } from "@/shared/errors/errors.ts";
 import { COUNTRY_COVERAGE } from "./searches.constants.ts";
 import type { ActiveSearch, StoredSearch, CreateSearchBody, UpdateSearchBody, SearchRun, SearchRunResults } from "./searches.types.ts";
 
-function enrichWithScheduleState(search: StoredSearch): ActiveSearch {
+async function enrichWithScheduleState(search: StoredSearch): Promise<ActiveSearch> {
   return {
     ...search,
     isScheduled: isScheduled(search.id),
     nextRunAt: getNextRunAt(search.id, search.frequency),
+    isExecuting: await isSearchExecuting(search.id),
   };
 }
 
 export async function getAllSearches(userId: string): Promise<ActiveSearch[]> {
   const searches = await repository.getAllSearches(userId);
-  return searches.map(enrichWithScheduleState);
+  return Promise.all(searches.map(enrichWithScheduleState));
 }
 
 export async function getSearchById(id: string, userId: string): Promise<ActiveSearch | null> {
   const search = await repository.getSearchById(id, userId);
-  return search ? enrichWithScheduleState(search) : null;
+  return search ? await enrichWithScheduleState(search) : null;
 }
 
 export async function createSearch(userId: string, body: CreateSearchBody): Promise<ActiveSearch> {
@@ -49,7 +50,7 @@ export async function createSearch(userId: string, body: CreateSearchBody): Prom
   const normalized = { ...body, location };
   const search = await repository.createSearch(userId, normalized);
   scheduleSearch(search);
-  return enrichWithScheduleState(search);
+  return await enrichWithScheduleState(search);
 }
 
 export async function updateSearch(id: string, userId: string, body: UpdateSearchBody): Promise<ActiveSearch | null> {
@@ -77,7 +78,7 @@ export async function updateSearch(id: string, userId: string, body: UpdateSearc
   const search = await repository.updateSearch(id, userId, normalized);
   if (search) {
     rescheduleSearch(search);
-    return enrichWithScheduleState(search);
+    return await enrichWithScheduleState(search);
   }
   return null;
 }
