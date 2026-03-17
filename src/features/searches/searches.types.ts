@@ -9,6 +9,7 @@ import {
   dateListedOptionEnum,
   filterStatusEnum,
 } from "@/infra/db/schema.ts";
+import { SUPPORTED_COUNTRIES } from "./searches.constants.ts";
 
 export const searchStatusSchema = createSelectSchema(searchStatusEnum);
 export const searchFrequencySchema = createSelectSchema(searchFrequencyEnum);
@@ -22,11 +23,14 @@ export const activeSearchSchema = storedSearchSchema.extend({
   nextRunAt: z.string().nullable(),
 });
 
+const countrySchema = z.enum(SUPPORTED_COUNTRIES as [string, ...string[]]);
+
 export const createSearchBodySchema = createInsertSchema(searches, {
   query: (schema) => schema.min(1),
-  location: (schema) => schema.min(1),
+  location: (schema) => schema.min(1).optional(),
   notificationTarget: (schema) => schema.min(1),
   listingsPerCheck: (schema) => schema.min(1).max(20),
+  country: () => countrySchema.nullable().optional(),
 }).pick({
   query: true,
   location: true,
@@ -38,10 +42,15 @@ export const createSearchBodySchema = createInsertSchema(searches, {
   notificationType: true,
   notificationTarget: true,
   prompt: true,
-});
+  country: true,
+}).refine(
+  (data) => data.location || data.country,
+  { message: "Either location or country is required", path: ["location"] },
+);
 
 export const updateSearchBodySchema = createUpdateSchema(searches, {
   listingsPerCheck: (schema) => schema.max(20),
+  country: () => countrySchema.nullable().optional(),
 }).pick({
   query: true,
   location: true,
@@ -54,6 +63,7 @@ export const updateSearchBodySchema = createUpdateSchema(searches, {
   notificationTarget: true,
   prompt: true,
   status: true,
+  country: true,
 });
 
 export const searchIdParamsSchema = z.object({

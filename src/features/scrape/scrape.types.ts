@@ -38,6 +38,10 @@ export interface SearchMarketPlaceParams {
   location?: string;
   /** Search query (e.g. "vintage guitars"). */
   query?: string;
+  /** Explicit latitude — skips geocoding when provided alongside longitude. */
+  latitude?: number;
+  /** Explicit longitude — skips geocoding when provided alongside latitude. */
+  longitude?: number;
   /** Search radius in km. Default 805 (~500 miles). Max 805. */
   radiusKm?: number;
   /** Minimum price filter. Default 0. */

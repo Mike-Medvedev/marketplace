@@ -40,6 +40,9 @@ export function pickSearchConfig(
     config.latitude = geocoded.latitude;
     config.longitude = geocoded.longitude;
     config.locationId = geocoded.locationId;
+  } else if (params.latitude != null && params.longitude != null) {
+    config.latitude = params.latitude;
+    config.longitude = params.longitude;
   }
   if (params.radiusKm != null) config.radiusKm = params.radiusKm;
   if (params.minPrice != null) config.minPrice = params.minPrice;

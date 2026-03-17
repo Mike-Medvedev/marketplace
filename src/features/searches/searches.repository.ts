@@ -6,7 +6,7 @@ import type { StoredSearch, CreateSearchBody, UpdateSearchBody, FilterStatus } f
 
 type SearchCriteria = Pick<
   typeof SearchesTable.$inferSelect,
-  "query" | "location" | "minPrice" | "maxPrice" | "dateListed" | "prompt"
+  "query" | "location" | "country" | "minPrice" | "maxPrice" | "dateListed" | "prompt"
 >;
 
 export async function findDuplicate(
@@ -26,6 +26,9 @@ export async function findDuplicate(
     criteria.prompt != null
       ? eq(searches.prompt, criteria.prompt)
       : isNull(searches.prompt),
+    criteria.country != null
+      ? eq(searches.country, criteria.country)
+      : isNull(searches.country),
   ];
 
   if (excludeId) conditions.push(ne(searches.id, excludeId));
@@ -52,7 +55,7 @@ export async function getSearchById(id: string, userId?: string): Promise<Stored
   return search ?? null;
 }
 
-export async function createSearch(userId: string, body: CreateSearchBody): Promise<StoredSearch> {
+export async function createSearch(userId: string, body: CreateSearchBody & { location: string }): Promise<StoredSearch> {
   const [search] = await db
     .insert(searches)
     .values({ ...body, userId })
