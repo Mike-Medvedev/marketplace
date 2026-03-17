@@ -112,7 +112,7 @@ async function runFilterPhase(
     logger.info(`[runSearch] AI filter done — ${filtered.length}/${listings.length} kept`);
 
     publishSearchEvent(search.id, {
-      type: "filter_completed",
+      status: "filter_completed",
       searchId: search.id,
       runId,
       filteredListingCount: filtered.length,
@@ -122,7 +122,7 @@ async function runFilterPhase(
     await repository.updateRunFilterResults(runId, "", 0, "failed").catch(() => {});
 
     publishSearchEvent(search.id, {
-      type: "filter_failed",
+      status: "filter_failed",
       searchId: search.id,
       runId,
       error: error instanceof Error ? error.message : String(error),
@@ -175,7 +175,7 @@ async function runWebhookFilterPhase(
     logger.info(`[runSearch] Webhook filter done — ${filtered.length}/${listings.length} kept`);
 
     publishSearchEvent(search.id, {
-      type: "filter_completed",
+      status: "filter_completed",
       searchId: search.id,
       runId,
       filteredListingCount: filtered.length,
@@ -185,7 +185,7 @@ async function runWebhookFilterPhase(
     await repository.updateRunFilterResults(runId, "", 0, "failed").catch(() => {});
 
     publishSearchEvent(search.id, {
-      type: "filter_failed",
+      status: "filter_failed",
       searchId: search.id,
       runId,
       error: error instanceof Error ? error.message : String(error),
@@ -201,7 +201,7 @@ async function runWebhookFilterPhase(
 export async function runSearch(search: StoredSearch): Promise<SearchRunResults> {
   await write(executingKey(search.id), "1", EXECUTING_TTL_SECONDS);
 
-  publishSearchEvent(search.id, { type: "executing", searchId: search.id }).catch((e) =>
+  publishSearchEvent(search.id, { status: "executing", searchId: search.id }).catch((e) =>
     logger.error(`[runSearch] Failed to publish executing event:`, e),
   );
 
@@ -236,7 +236,7 @@ export async function runSearch(search: StoredSearch): Promise<SearchRunResults>
     logger.info(`[runSearch] "${search.query}" scraped — ${listings.length} listings stored`);
 
     publishSearchEvent(search.id, {
-      type: "completed",
+      status: "completed",
       searchId: search.id,
       runId,
       listingCount: listings.length,
@@ -265,7 +265,7 @@ export async function runSearch(search: StoredSearch): Promise<SearchRunResults>
     }
 
     publishSearchEvent(search.id, {
-      type: "failed",
+      status: "failed",
       searchId: search.id,
       error: error instanceof Error ? error.message : String(error),
       errorName: error instanceof Error ? error.name : "UnknownError",

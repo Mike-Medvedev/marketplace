@@ -120,11 +120,11 @@ export type UpdateSearchBody = z.infer<typeof updateSearchBodySchema>;
 export type SearchRun = z.infer<typeof searchRunSchema>;
 export type SearchRunResults = z.infer<typeof searchRunResultsSchema>;
 export type SearchEvent =
-  | { type: "executing"; searchId: string }
-  | { type: "completed"; searchId: string; runId: string; listingCount: number }
-  | { type: "filter_completed"; searchId: string; runId: string; filteredListingCount: number }
-  | { type: "filter_failed"; searchId: string; runId: string; error: string }
-  | { type: "failed"; searchId: string; error: string; errorName: string };
+  | { status: "executing"; searchId: string }
+  | { status: "completed"; searchId: string; runId: string; listingCount: number }
+  | { status: "filter_completed"; searchId: string; runId: string; filteredListingCount: number }
+  | { status: "filter_failed"; searchId: string; runId: string; error: string }
+  | { status: "failed"; searchId: string; error: string; errorName: string };
 
 export type IdParams = { id: string };
 export type RunIdParams = { id: string; runId: string };

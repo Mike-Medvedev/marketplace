@@ -31,7 +31,7 @@ export async function publishSyncEvent(event: SyncEvent): Promise<void> {
 
 export async function publishSearchEvent(searchId: string, event: SearchEvent): Promise<void> {
   await publish(searchChannel(searchId), JSON.stringify(event));
-  logger.info(`[pubsub] Published ${event.type} for search ${searchId}`);
+  logger.info(`[pubsub] Published ${event.status} for search ${searchId}`);
 }
 
 export type SyncEventHandler = (event: SyncEvent) => void;

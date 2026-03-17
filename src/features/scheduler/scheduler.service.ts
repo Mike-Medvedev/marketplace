@@ -30,7 +30,7 @@ async function executeTick(search: StoredSearch): Promise<void> {
     logger.error(`[scheduler] Search ${search.id} failed:`, error);
 
     await publishSearchEvent(search.id, {
-      type: "failed",
+      status: "failed",
       searchId: search.id,
       error: message,
       errorName: error instanceof Error ? error.name : "Error",

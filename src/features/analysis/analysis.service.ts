@@ -6,7 +6,7 @@ import type { z } from "zod";
 type Listing = z.infer<typeof listingSchema>;
 
 const ROBOFLOW_URL = "https://serverless.roboflow.com/gilded-6esmg/workflows/custom-workflow-4";
-const ROBOFLOW_TIMEOUT_MS = 30_000;
+const ROBOFLOW_TIMEOUT_MS = 2 * 60 * 1000;
 
 async function analyzeSingleListing(listing: Listing): Promise<Listing | null> {
   const response = await fetch(ROBOFLOW_URL, {
