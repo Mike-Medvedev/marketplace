@@ -188,3 +188,10 @@ export class NoActiveSyncError extends Error {
     this.name = "NoActiveSyncError";
   }
 }
+
+export class AnonTokenScrapeError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "AnonTokenScrapeError";
+  }
+}

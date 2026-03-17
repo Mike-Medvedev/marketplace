@@ -60,6 +60,8 @@ export interface SearchMarketPlaceParams {
   listingFetchDelayMs?: number;
   /** How often to repeat this search (e.g. "every_1h", "every_6h", "every_24h"). */
   searchFrequency?: SearchFrequency;
+  /** Caller's User-Agent string, forwarded to Facebook requests for fingerprint diversity. */
+  userAgent?: string;
 }
 
 export interface SearchMarketPlaceResult {
@@ -77,7 +79,7 @@ export interface RawListing {
   listing_price: { amount: string };
   marketplace_listing_title: string;
   location: { reverse_geocode: Record<string, unknown> };
-  primary_listing_photo: { image: { uri: string } };
+  primary_listing_photo: { image: { uri: string } } | null;
 }
 
 /** Zod schema for POST /scrape request body. All fields optional. No body or empty body defaults to {}. */

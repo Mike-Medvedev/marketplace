@@ -1,4 +1,5 @@
 import {
+  AnonTokenScrapeError,
   DatabaseResourceNotFoundError,
   DuplicateSearchError,
   FacebookRateLimitError,
@@ -58,6 +59,10 @@ const errorHandler: ErrorRequestHandler = function (
   if (error instanceof NoActiveSyncError) {
     logger.warn(error.message);
     return res.error(409, error);
+  }
+  if (error instanceof AnonTokenScrapeError) {
+    logger.warn(`[anon] ${error.message}`);
+    return res.error(502, error);
   }
   if (error instanceof FacebookRateLimitError) {
     logger.warn(`[rate-limit] Facebook error code ${error.facebookErrorCode}: ${error.message}`);

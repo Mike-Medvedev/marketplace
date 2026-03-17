@@ -1,9 +1,11 @@
 import { FB_GRAPHQL_URL } from "@/features/facebook/facebook.constants.ts";
 import {
   marketplaceSearchRequestConfig,
+  marketplaceAnonSearchRequestConfig,
   marketplaceProductListingPhotosRequestConfig,
   marketplaceProductListingDescriptionRequestConfig,
 } from "@/features/facebook/facebook.requests.ts";
+import { hasSession } from "@/features/facebook/facebook.service.ts";
 import type {
   MarketplaceListing,
   MarketplaceSearchConfig,
@@ -51,10 +53,12 @@ export async function searchMarketPlace(
     pageCount = DEFAULT_PAGE_COUNT,
     pageDelayMs = DEFAULT_PAGE_DELAY_MS,
     listingFetchDelayMs = DEFAULT_LISTING_FETCH_DELAY_MS,
+    userAgent,
   } = params;
 
+  const isAuthenticated = userId ? await hasSession(userId) : false;
   logger.info(
-    `[searchMarketPlace] Starting search — query="${params.query}", location="${params.location}", minPrice=${params.minPrice}, maxPrice=${params.maxPrice}, dateListedDays=${params.dateListedDays}, pageCount=${pageCount}`,
+    `[searchMarketPlace] Starting search — query="${params.query}", location="${params.location}", minPrice=${params.minPrice}, maxPrice=${params.maxPrice}, dateListedDays=${params.dateListedDays}, pageCount=${pageCount}, mode=${isAuthenticated ? "authenticated" : "anonymous"}`,
   );
 
   const geocoded = params.location ? await geocodeCity(params.location) : undefined;
@@ -67,7 +71,7 @@ export async function searchMarketPlace(
 
   if (pageCount == null || pageCount <= 1) {
     logger.info(`[searchMarketPlace] Fetching single page...`);
-    return fetchOnePage(cursor, listingFetchDelayMs, searchConfig, userId);
+    return fetchOnePage(cursor, listingFetchDelayMs, searchConfig, userId, isAuthenticated, userAgent);
   }
 
   const allListings: Omit<MarketplaceListing, "photos" | "description">[] = [];
@@ -75,7 +79,7 @@ export async function searchMarketPlace(
   let pageNum = 1;
 
   do {
-    const page = await fetchOnePage(nextCursor, listingFetchDelayMs, searchConfig, userId);
+    const page = await fetchOnePage(nextCursor, listingFetchDelayMs, searchConfig, userId, isAuthenticated, userAgent);
     allListings.push(...page.listings);
     pageNum++;
     nextCursor = page.nextCursor;
@@ -98,9 +102,16 @@ async function fetchOnePage(
   listingFetchDelayMs: number = DEFAULT_LISTING_FETCH_DELAY_MS,
   searchConfig?: Partial<MarketplaceSearchConfig>,
   userId?: string,
+  isAuthenticated: boolean = true,
+  userAgent?: string,
 ): Promise<SearchMarketPlaceResult> {
-  logger.info(`[fetchOnePage] Requesting Facebook GraphQL (cursor=${cursor ? "yes" : "none"})`);
-  const requestConfig = await marketplaceSearchRequestConfig(userId!, cursor, searchConfig);
+  const mode = isAuthenticated ? "authenticated" : "anonymous";
+  logger.info(`[fetchOnePage] Requesting Facebook GraphQL [${mode}] (cursor=${cursor ? "yes" : "none"})`);
+
+  const requestConfig = isAuthenticated
+    ? await marketplaceSearchRequestConfig(userId!, cursor, searchConfig, userAgent)
+    : await marketplaceAnonSearchRequestConfig(cursor, searchConfig, userAgent);
+
   const response = await fetch(FB_GRAPHQL_URL, requestConfig);
 
   if (!response.ok) {
@@ -148,7 +159,12 @@ async function fetchOnePage(
     const msg =
       fbResponse.errorDescription ?? fbResponse.errorSummary ?? "Facebook returned an error.";
     logger.error(`[fetchOnePage] Facebook error ${fbResponse.error}: ${msg}`);
-    throw new FacebookSessionExpiredError(msg, fbResponse.error, fbResponse.errorSummary);
+    if (isAuthenticated) {
+      throw new FacebookSessionExpiredError(msg, fbResponse.error, fbResponse.errorSummary);
+    }
+    throw new SearchMarketPlaceError(
+      `Facebook anonymous request failed (error ${fbResponse.error}): ${msg}`,
+    );
   }
 
   if (!json.data) {
@@ -156,7 +172,7 @@ async function fetchOnePage(
       `[fetchOnePage] Facebook response has no "data" field. First 1000 chars: ${JSON.stringify(json).slice(0, 1000)}`,
     );
     throw new SearchMarketPlaceError(
-      "Facebook returned an unexpected response (no data field). Session may be expired.",
+      "Facebook returned an unexpected response (no data field).",
     );
   }
 
@@ -165,7 +181,7 @@ async function fetchOnePage(
       `[fetchOnePage] Facebook response missing "marketplace_search". Keys: ${Object.keys(json.data).join(", ")}. First 1000 chars: ${JSON.stringify(json.data).slice(0, 1000)}`,
     );
     throw new SearchMarketPlaceError(
-      "Facebook returned an unexpected response (no marketplace_search). Session may be expired or request was malformed.",
+      "Facebook returned an unexpected response (no marketplace_search). Request may be malformed.",
     );
   }
 
@@ -179,9 +195,10 @@ async function fetchOnePage(
 
   const rawListings = feedUnits.edges
     .map((edge) => edge.node.listing)
-    .filter((listing): listing is RawListing => listing != null);
+    .filter((listing): listing is RawListing => listing != null)
+    .filter((listing) => listing.primary_listing_photo != null);
   logger.info(
-    `[fetchOnePage] Fetched ${rawListings.length} listings from ${feedUnits.edges.length} edges`,
+    `[fetchOnePage] Fetched ${rawListings.length} listings (with photos) from ${feedUnits.edges.length} edges`,
   );
   const listings = rawListings.map(extractListingDetails);
   const nextCursor = feedUnits.page_info?.end_cursor ?? null;
@@ -198,7 +215,7 @@ function extractListingDetails(
     price: listing.listing_price.amount,
     title: listing.marketplace_listing_title,
     location: listing.location?.reverse_geocode ?? null,
-    primaryPhotoUri: listing.primary_listing_photo.image.uri,
+    primaryPhotoUri: listing.primary_listing_photo!.image.uri,
   };
 }
 

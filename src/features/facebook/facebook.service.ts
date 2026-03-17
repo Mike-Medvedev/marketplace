@@ -58,6 +58,11 @@ export function getSessionOrThrow(userId: string): Promise<SessionConfig> {
   return requireSession(userId);
 }
 
+export async function hasSession(userId: string): Promise<boolean> {
+  const session = await getSessionConfig(userId);
+  return session !== null;
+}
+
 export async function isSessionValid(userId: string): Promise<boolean> {
   const session = await getSessionConfig(userId);
   if (!session) return false;

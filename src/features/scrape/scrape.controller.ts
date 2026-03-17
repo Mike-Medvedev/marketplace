@@ -7,6 +7,8 @@ export const ScrapeController = {
   async handleScrape(req: Request, res: Response) {
     logger.info("Request received, kicking off marketplace search...");
     const params = parseScrapeBody(req.body);
+    const ua = req.headers["user-agent"];
+    if (ua) params.userAgent = ua;
     const { listings } = await searchMarketPlace(params, req.user!.id);
     res.success({ listings });
   },
