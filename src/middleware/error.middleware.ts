@@ -16,6 +16,7 @@ import {
   UnauthorizedDatabaseRequestError,
 } from "@/shared/errors/errors";
 import { triggerAutoResync } from "@/features/sync/sync.service.ts";
+import { DrizzleQueryError } from "drizzle-orm/errors";
 import { APIError } from "openai";
 import logger from "@/infra/logger/logger";
 import type { ErrorRequestHandler, Request, Response, NextFunction } from "express";
@@ -96,10 +97,17 @@ const errorHandler: ErrorRequestHandler = function (
     logger.error(error);
     return res.error(500, error);
   }
+  if (error instanceof DrizzleQueryError) {
+    logger.error("Database query failed", {
+      query: error.query,
+      params: error.params,
+      cause: error.cause,
+    });
+    return res.error(500, new Error("A database error occurred. Please try again later."));
+  }
 
   logger.error(error);
-  const message = error instanceof Error ? error.message : "An unexpected error occurred";
-  return res.error(500, new Error(message));
+  return res.error(500, new Error("An unexpected error occurred"));
 };
 
 export default errorHandler;
