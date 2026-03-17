@@ -5,11 +5,10 @@ import type { z } from "zod";
 
 type Listing = z.infer<typeof listingSchema>;
 
-const ROBOFLOW_URL =
-  "https://serverless.roboflow.com/gilded-6esmg/workflows/custom-workflow-4";
+const ROBOFLOW_URL = "https://serverless.roboflow.com/gilded-6esmg/workflows/custom-workflow-4";
 const ROBOFLOW_TIMEOUT_MS = 30_000;
 
-async function analyzeSingleListing(listing: Listing): Promise<boolean> {
+async function analyzeSingleListing(listing: Listing): Promise<Listing | null> {
   const response = await fetch(ROBOFLOW_URL, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -17,7 +16,14 @@ async function analyzeSingleListing(listing: Listing): Promise<boolean> {
       api_key: env.ROBOFLOW_API_KEY,
       inputs: {
         image: { type: "url", value: listing.primaryPhotoUri },
-        metadata: { id: listing.id, title: listing.title, url: listing.url },
+        metadata: {
+          id: listing.id,
+          url: listing.url,
+          price: listing.price,
+          title: listing.title,
+          location: listing.location,
+          primaryPhotoUri: listing.primaryPhotoUri,
+        },
       },
     }),
     signal: AbortSignal.timeout(ROBOFLOW_TIMEOUT_MS),
@@ -29,22 +35,30 @@ async function analyzeSingleListing(listing: Listing): Promise<boolean> {
     );
   }
 
-  const raw = (await response.json()) as { outputs?: { keep?: boolean }[] };
-  const keep = raw?.outputs?.[0]?.keep;
+  const raw = (await response.json()) as Array<{
+    result: Array<{
+      id: string;
+      url: string;
+      price: string;
+      title: string;
+      location: Record<string, unknown> | null;
+      primaryPhotoUri: string;
+    } | null>;
+  }>;
 
-  if (typeof keep !== "boolean") {
+  const result = raw?.[0]?.result?.[0];
+
+  if (!result || typeof result !== "object" || !result.id) {
     logger.warn(
       `[roboflow] Unexpected response shape for listing ${listing.id}. Raw: ${JSON.stringify(raw).slice(0, 500)}`,
     );
-    return false;
+    return null;
   }
 
-  return keep;
+  return result;
 }
 
-export async function filterListingsViaRoboflow(
-  listings: Listing[],
-): Promise<Listing[]> {
+export async function filterListingsViaRoboflow(listings: Listing[]): Promise<Listing[]> {
   const kept: Listing[] = [];
 
   for (let i = 0; i < listings.length; i++) {
