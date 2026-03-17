@@ -14,7 +14,7 @@ import { listingSchema } from "./searches.types.ts";
 import type { StoredSearch, SearchRunResults, FilterStatus } from "./searches.types.ts";
 import type { SearchMarketPlaceParams, SearchMarketPlaceResult } from "@/features/scrape/scrape.types.ts";
 
-const WEBHOOK_TIMEOUT_MS = 30_000;
+const WEBHOOK_TIMEOUT_MS = 120_000;
 const webhookResponseSchema = z.object({ listings: z.array(listingSchema) });
 
 function toScrapeParams(search: StoredSearch): SearchMarketPlaceParams {
