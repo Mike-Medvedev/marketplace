@@ -35,23 +35,11 @@ async function analyzeSingleListing(listing: Listing): Promise<Listing | null> {
     );
   }
 
-  const raw = (await response.json()) as Array<{
-    result: Array<{
-      id: string;
-      url: string;
-      price: string;
-      title: string;
-      location: Record<string, unknown> | null;
-      primaryPhotoUri: string;
-    } | null>;
-  }>;
-
-  const result = raw?.[0]?.result?.[0];
+  const raw = (await response.json()) as { outputs: Array<{ result: Array<Listing | null> }> };
+  const result = raw?.outputs?.[0]?.result?.[0];
 
   if (!result || typeof result !== "object" || !result.id) {
-    logger.warn(
-      `[roboflow] Unexpected response shape for listing ${listing.id}. Raw: ${JSON.stringify(raw).slice(0, 500)}`,
-    );
+    logger.info(`[roboflow] No match returned for listing ${listing.id}`);
     return null;
   }
 
