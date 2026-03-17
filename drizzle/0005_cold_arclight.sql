@@ -1,0 +1,1 @@
+ALTER TABLE "searches" ADD COLUMN "webhook_filter_url" text;

@@ -9,8 +9,13 @@ import { delay } from "@/features/scrape/scrape.utils.ts";
 import { COUNTRY_COVERAGE } from "./searches.constants.ts";
 import * as repository from "./searches.repository.ts";
 import logger from "@/infra/logger/logger.ts";
+import { z } from "zod";
+import { listingSchema } from "./searches.types.ts";
 import type { StoredSearch, SearchRunResults, FilterStatus } from "./searches.types.ts";
 import type { SearchMarketPlaceParams, SearchMarketPlaceResult } from "@/features/scrape/scrape.types.ts";
+
+const WEBHOOK_TIMEOUT_MS = 30_000;
+const webhookResponseSchema = z.object({ listings: z.array(listingSchema) });
 
 function toScrapeParams(search: StoredSearch): SearchMarketPlaceParams {
   const params: SearchMarketPlaceParams = {
@@ -113,9 +118,65 @@ async function runFilterPhase(
 }
 
 /**
+ * Phase 2 (webhook variant): POSTs listings to the user's webhook for custom
+ * filtering. Expects the webhook to return { listings } in the same shape.
+ */
+async function runWebhookFilterPhase(
+  search: StoredSearch,
+  runId: string,
+  listings: SearchRunResults["listings"],
+): Promise<void> {
+  const url = search.webhookFilterUrl!;
+  try {
+    logger.info(`[runSearch] Sending ${listings.length} listings to webhook filter: ${url} (run ${runId})`);
+
+    const response = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ searchId: search.id, runId, listings }),
+      signal: AbortSignal.timeout(WEBHOOK_TIMEOUT_MS),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Webhook returned ${response.status} ${response.statusText}`);
+    }
+
+    const body = await response.json();
+    const parsed = webhookResponseSchema.safeParse(body);
+    if (!parsed.success) {
+      throw new Error(`Invalid webhook response shape: ${parsed.error.message}`);
+    }
+
+    const filtered = parsed.data.listings;
+    const redisKey = filteredResultsKey(search.id, runId);
+    await write(redisKey, JSON.stringify(filtered), RESULTS_TTL_SECONDS);
+    await repository.updateRunFilterResults(runId, redisKey, filtered.length, "completed");
+
+    logger.info(`[runSearch] Webhook filter done — ${filtered.length}/${listings.length} kept`);
+
+    publishSearchEvent(search.id, {
+      type: "filter_completed",
+      searchId: search.id,
+      runId,
+      filteredListingCount: filtered.length,
+    }).catch((e) => logger.error(`[runSearch] Failed to publish filter_completed:`, e));
+  } catch (error) {
+    logger.error(`[runSearch] Webhook filter failed for run ${runId} (${url}):`, error);
+    await repository.updateRunFilterResults(runId, "", 0, "failed").catch(() => {});
+
+    publishSearchEvent(search.id, {
+      type: "filter_failed",
+      searchId: search.id,
+      runId,
+      error: error instanceof Error ? error.message : String(error),
+    }).catch((e) => logger.error(`[runSearch] Failed to publish filter_failed:`, e));
+  }
+}
+
+/**
  * Scrapes listings and stores unfiltered results immediately.
- * If the search has a prompt, kicks off AI filtering asynchronously
- * and publishes SSE events when it completes or fails.
+ * If the search has a prompt or webhookFilterUrl, kicks off filtering
+ * asynchronously and publishes SSE events when it completes or fails.
  */
 export async function runSearch(search: StoredSearch): Promise<SearchRunResults> {
   publishSearchEvent(search.id, { type: "executing", searchId: search.id }).catch((e) =>
@@ -138,7 +199,8 @@ export async function runSearch(search: StoredSearch): Promise<SearchRunResults>
     const redisKey = resultsKey(search.id, runId);
     await write(redisKey, JSON.stringify(listings), RESULTS_TTL_SECONDS);
 
-    const filterStatus: FilterStatus = search.prompt ? "pending" : "none";
+    const hasFilter = !!(search.prompt || search.webhookFilterUrl);
+    const filterStatus: FilterStatus = hasFilter ? "pending" : "none";
     await repository.createRun(runId, search.id, redisKey, listings.length, filterStatus);
     await repository.updateLastRun(search.id, new Date());
 
@@ -153,6 +215,8 @@ export async function runSearch(search: StoredSearch): Promise<SearchRunResults>
 
     if (search.prompt) {
       runFilterPhase(search, runId, listings);
+    } else if (search.webhookFilterUrl) {
+      runWebhookFilterPhase(search, runId, listings);
     }
 
     return {

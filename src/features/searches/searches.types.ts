@@ -31,6 +31,7 @@ export const createSearchBodySchema = createInsertSchema(searches, {
   notificationTarget: (schema) => schema.min(1),
   listingsPerCheck: (schema) => schema.min(1).max(20),
   country: () => countrySchema.nullable().optional(),
+  webhookFilterUrl: (schema) => schema.url().nullable().optional(),
 }).pick({
   query: true,
   location: true,
@@ -42,15 +43,20 @@ export const createSearchBodySchema = createInsertSchema(searches, {
   notificationType: true,
   notificationTarget: true,
   prompt: true,
+  webhookFilterUrl: true,
   country: true,
 }).refine(
   (data) => data.location || data.country,
   { message: "Either location or country is required", path: ["location"] },
+).refine(
+  (data) => !(data.prompt && data.webhookFilterUrl),
+  { message: "Cannot set both prompt and webhookFilterUrl — choose one filter method", path: ["webhookFilterUrl"] },
 );
 
 export const updateSearchBodySchema = createUpdateSchema(searches, {
   listingsPerCheck: (schema) => schema.max(20),
   country: () => countrySchema.nullable().optional(),
+  webhookFilterUrl: (schema) => schema.url().nullable().optional(),
 }).pick({
   query: true,
   location: true,
@@ -62,9 +68,13 @@ export const updateSearchBodySchema = createUpdateSchema(searches, {
   notificationType: true,
   notificationTarget: true,
   prompt: true,
+  webhookFilterUrl: true,
   status: true,
   country: true,
-});
+}).refine(
+  (data) => !(data.prompt && data.webhookFilterUrl),
+  { message: "Cannot set both prompt and webhookFilterUrl — choose one filter method", path: ["webhookFilterUrl"] },
+);
 
 export const searchIdParamsSchema = z.object({
   id: z.uuid(),
@@ -82,7 +92,7 @@ export const searchRunSchema = createSelectSchema(searchRuns).omit({
   filteredRedisResultKey: true,
 });
 
-const listingSchema = z.object({
+export const listingSchema = z.object({
   id: z.string(),
   url: z.string(),
   price: z.string(),

@@ -36,6 +36,13 @@
       "when": 1773759212115,
       "tag": "0004_mighty_tinkerer",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1773760184089,
+      "tag": "0005_cold_arclight",
+      "breakpoints": true
     }
   ]
 }

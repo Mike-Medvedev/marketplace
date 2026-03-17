@@ -42,6 +42,7 @@ export async function createSearch(userId: string, body: CreateSearchBody): Prom
     maxPrice: body.maxPrice ?? null,
     dateListed: body.dateListed,
     prompt: body.prompt ?? null,
+    webhookFilterUrl: body.webhookFilterUrl ?? null,
   });
   if (duplicate) throw new DuplicateSearchError(body.query, location);
 
@@ -66,6 +67,7 @@ export async function updateSearch(id: string, userId: string, body: UpdateSearc
     maxPrice: body.maxPrice !== undefined ? body.maxPrice : existing.maxPrice,
     dateListed: body.dateListed ?? existing.dateListed,
     prompt: body.prompt !== undefined ? body.prompt : existing.prompt,
+    webhookFilterUrl: body.webhookFilterUrl !== undefined ? body.webhookFilterUrl : existing.webhookFilterUrl,
   };
 
   const duplicate = await repository.findDuplicate(userId, merged, id);
