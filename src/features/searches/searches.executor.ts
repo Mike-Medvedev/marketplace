@@ -6,7 +6,7 @@ import { publishSearchEvent } from "@/infra/redis/redis.pubsub.ts";
 import { RESULTS_TTL_SECONDS } from "@/features/scheduler/scheduler.constants.ts";
 import * as repository from "./searches.repository.ts";
 import logger from "@/infra/logger/logger.ts";
-import type { StoredSearch, SearchRunResults } from "./searches.types.ts";
+import type { StoredSearch, SearchRunResults, FilterStatus } from "./searches.types.ts";
 import type { SearchMarketPlaceParams } from "@/features/scrape/scrape.types.ts";
 
 function toScrapeParams(search: StoredSearch): SearchMarketPlaceParams {
@@ -21,12 +21,55 @@ function toScrapeParams(search: StoredSearch): SearchMarketPlaceParams {
 }
 
 function resultsKey(searchId: string, runId: string): string {
-  return `search:${searchId}:results:${runId}`;
+  return `search:${searchId}:results:${runId}:all`;
+}
+
+function filteredResultsKey(searchId: string, runId: string): string {
+  return `search:${searchId}:results:${runId}:filtered`;
 }
 
 /**
- * Calls searchMarketPlace (the same scrape logic used everywhere),
- * stores every listing it returns in Redis + DB, publishes SSE events.
+ * Phase 2: runs AI filtering in the background after unfiltered results
+ * have already been returned. Stores filtered results and publishes SSE.
+ */
+async function runFilterPhase(
+  search: StoredSearch,
+  runId: string,
+  listings: SearchRunResults["listings"],
+): Promise<void> {
+  try {
+    logger.info(`[runSearch] Starting AI filter for "${search.query}" (run ${runId})`);
+    const filtered = await filterListings(listings, search.prompt!);
+
+    const redisKey = filteredResultsKey(search.id, runId);
+    await write(redisKey, JSON.stringify(filtered), RESULTS_TTL_SECONDS);
+    await repository.updateRunFilterResults(runId, redisKey, filtered.length, "completed");
+
+    logger.info(`[runSearch] AI filter done — ${filtered.length}/${listings.length} kept`);
+
+    publishSearchEvent(search.id, {
+      type: "filter_completed",
+      searchId: search.id,
+      runId,
+      filteredListingCount: filtered.length,
+    }).catch((e) => logger.error(`[runSearch] Failed to publish filter_completed:`, e));
+  } catch (error) {
+    logger.error(`[runSearch] AI filter failed for run ${runId}:`, error);
+    await repository.updateRunFilterResults(runId, "", 0, "failed").catch(() => {});
+
+    publishSearchEvent(search.id, {
+      type: "filter_failed",
+      searchId: search.id,
+      runId,
+      error: error instanceof Error ? error.message : String(error),
+    }).catch((e) => logger.error(`[runSearch] Failed to publish filter_failed:`, e));
+  }
+}
+
+/**
+ * Scrapes listings and stores unfiltered results immediately.
+ * If the search has a prompt, kicks off AI filtering asynchronously
+ * and publishes SSE events when it completes or fails.
  */
 export async function runSearch(search: StoredSearch): Promise<SearchRunResults> {
   publishSearchEvent(search.id, { type: "executing", searchId: search.id }).catch((e) =>
@@ -41,27 +84,34 @@ export async function runSearch(search: StoredSearch): Promise<SearchRunResults>
 
     const { listings } = await searchMarketPlace(params, search.userId);
 
-    const finalListings = search.prompt
-      ? await filterListings(listings, search.prompt)
-      : listings;
-
     const runId = randomUUID();
     const redisKey = resultsKey(search.id, runId);
-    await write(redisKey, JSON.stringify(finalListings), RESULTS_TTL_SECONDS);
+    await write(redisKey, JSON.stringify(listings), RESULTS_TTL_SECONDS);
 
-    await repository.createRun(runId, search.id, redisKey, finalListings.length);
+    const filterStatus: FilterStatus = search.prompt ? "pending" : "none";
+    await repository.createRun(runId, search.id, redisKey, listings.length, filterStatus);
     await repository.updateLastRun(search.id, new Date());
 
-    logger.info(`[runSearch] "${search.query}" completed — ${finalListings.length} listings stored (${listings.length} scraped)`);
+    logger.info(`[runSearch] "${search.query}" scraped — ${listings.length} listings stored`);
 
     publishSearchEvent(search.id, {
       type: "completed",
       searchId: search.id,
       runId,
-      listingCount: finalListings.length,
+      listingCount: listings.length,
     }).catch((e) => logger.error(`[runSearch] Failed to publish completed event:`, e));
 
-    return { runId, executedAt: new Date(), listings: finalListings };
+    if (search.prompt) {
+      runFilterPhase(search, runId, listings);
+    }
+
+    return {
+      runId,
+      executedAt: new Date(),
+      filterStatus,
+      listings,
+      filteredListings: null,
+    };
   } catch (error) {
     publishSearchEvent(search.id, {
       type: "failed",

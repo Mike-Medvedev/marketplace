@@ -107,10 +107,18 @@ export async function getSearchRunResults(
   const raw = await read(run.redisResultKey);
   const listings = raw ? JSON.parse(raw) : [];
 
+  let filteredListings = null;
+  if (run.filterStatus === "completed" && run.filteredRedisResultKey) {
+    const filteredRaw = await read(run.filteredRedisResultKey);
+    filteredListings = filteredRaw ? JSON.parse(filteredRaw) : [];
+  }
+
   return {
     runId: run.id,
     executedAt: run.executedAt,
+    filterStatus: run.filterStatus,
     listings,
+    filteredListings,
   };
 }
 

@@ -70,6 +70,13 @@ export const searches = pgTable("searches", {
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
+export const filterStatusEnum = pgEnum("filter_status", [
+  "none",
+  "pending",
+  "completed",
+  "failed",
+]);
+
 export const searchRuns = pgTable("search_runs", {
   id: uuid().primaryKey().defaultRandom(),
   searchId: uuid("search_id")
@@ -77,6 +84,9 @@ export const searchRuns = pgTable("search_runs", {
     .references(() => searches.id, { onDelete: "cascade" }),
   redisResultKey: text("redis_result_key").notNull(),
   listingCount: integer("listing_count").notNull().default(0),
+  filteredRedisResultKey: text("filtered_redis_result_key"),
+  filteredListingCount: integer("filtered_listing_count"),
+  filterStatus: filterStatusEnum("filter_status").notNull().default("none"),
   executedAt: timestamp("executed_at", { withTimezone: true }).notNull().defaultNow(),
 });
 

@@ -7,6 +7,7 @@ import {
   searchFrequencyEnum,
   notificationMethodEnum,
   dateListedOptionEnum,
+  filterStatusEnum,
 } from "@/infra/db/schema.ts";
 
 export const searchStatusSchema = createSelectSchema(searchStatusEnum);
@@ -62,8 +63,11 @@ export const searchRunParamsSchema = z.object({
   runId: z.uuid(),
 });
 
+export const filterStatusSchema = createSelectSchema(filterStatusEnum);
+
 export const searchRunSchema = createSelectSchema(searchRuns).omit({
   redisResultKey: true,
+  filteredRedisResultKey: true,
 });
 
 const listingSchema = z.object({
@@ -78,9 +82,12 @@ const listingSchema = z.object({
 export const searchRunResultsSchema = z.object({
   runId: z.string().uuid(),
   executedAt: z.union([z.string(), z.date()]),
+  filterStatus: filterStatusSchema,
   listings: z.array(listingSchema),
+  filteredListings: z.array(listingSchema).nullable(),
 });
 
+export type FilterStatus = z.infer<typeof filterStatusSchema>;
 export type SearchFrequency = z.infer<typeof searchFrequencySchema>;
 export type NotificationMethod = z.infer<typeof notificationMethodSchema>;
 export type StoredSearch = z.infer<typeof storedSearchSchema>;
@@ -92,6 +99,8 @@ export type SearchRunResults = z.infer<typeof searchRunResultsSchema>;
 export type SearchEvent =
   | { type: "executing"; searchId: string }
   | { type: "completed"; searchId: string; runId: string; listingCount: number }
+  | { type: "filter_completed"; searchId: string; runId: string; filteredListingCount: number }
+  | { type: "filter_failed"; searchId: string; runId: string; error: string }
   | { type: "failed"; searchId: string; error: string; errorName: string };
 
 export type IdParams = { id: string };

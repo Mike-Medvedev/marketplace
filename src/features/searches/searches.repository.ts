@@ -2,7 +2,7 @@ import { db } from "@/infra/db/db.ts";
 import { searches, searchRuns } from "@/infra/db/schema.ts";
 import { eq, and, desc, isNull, ne } from "drizzle-orm";
 import type { searches as SearchesTable } from "@/infra/db/schema.ts";
-import type { StoredSearch, CreateSearchBody, UpdateSearchBody } from "./searches.types.ts";
+import type { StoredSearch, CreateSearchBody, UpdateSearchBody, FilterStatus } from "./searches.types.ts";
 
 type SearchCriteria = Pick<
   typeof SearchesTable.$inferSelect,
@@ -122,6 +122,8 @@ export async function getRunsBySearchId(searchId: string) {
       id: searchRuns.id,
       searchId: searchRuns.searchId,
       listingCount: searchRuns.listingCount,
+      filteredListingCount: searchRuns.filteredListingCount,
+      filterStatus: searchRuns.filterStatus,
       executedAt: searchRuns.executedAt,
     })
     .from(searchRuns)
@@ -143,10 +145,23 @@ export async function createRun(
   searchId: string,
   redisResultKey: string,
   listingCount: number,
+  filterStatus: FilterStatus = "none",
 ) {
   const [run] = await db
     .insert(searchRuns)
-    .values({ id: runId, searchId, redisResultKey, listingCount })
+    .values({ id: runId, searchId, redisResultKey, listingCount, filterStatus })
     .returning();
   return run!;
+}
+
+export async function updateRunFilterResults(
+  runId: string,
+  filteredRedisResultKey: string,
+  filteredListingCount: number,
+  filterStatus: FilterStatus,
+) {
+  await db
+    .update(searchRuns)
+    .set({ filteredRedisResultKey, filteredListingCount, filterStatus })
+    .where(eq(searchRuns.id, runId));
 }
