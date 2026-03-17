@@ -1,6 +1,41 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# --- Profile persistence ---
+# Chromium needs a local profile dir (SMB doesn't support file locking).
+# The default Chromium profile syncs to {CHROME_PROFILE_DIR}/default/ on
+# the fileshare. Per-user Playwright storage states are saved as
+# {CHROME_PROFILE_DIR}/{userId}.json by the API server.
+LOCAL_PROFILE="/tmp/chrome-profile"
+PERSIST_DIR="${CHROME_PROFILE_DIR:-}"
+DEFAULT_PERSIST="${PERSIST_DIR:+${PERSIST_DIR}/default}"
+
+mkdir -p "${LOCAL_PROFILE}"
+
+if [ -n "${PERSIST_DIR}" ]; then
+  mkdir -p "${PERSIST_DIR}"
+fi
+
+if [ -n "${DEFAULT_PERSIST}" ] && [ -d "${DEFAULT_PERSIST}" ]; then
+  echo "Restoring default Chrome profile from ${DEFAULT_PERSIST}..."
+  cp -a "${DEFAULT_PERSIST}/." "${LOCAL_PROFILE}/" 2>/dev/null || true
+  rm -f "${LOCAL_PROFILE}/SingletonLock" "${LOCAL_PROFILE}/SingletonSocket" "${LOCAL_PROFILE}/SingletonCookie"
+  echo "Profile restored"
+else
+  echo "No persistent default profile found, using ephemeral ${LOCAL_PROFILE}"
+fi
+
+sync_profile() {
+  if [ -n "${DEFAULT_PERSIST}" ]; then
+    mkdir -p "${DEFAULT_PERSIST}"
+    echo "Syncing default Chrome profile to ${DEFAULT_PERSIST}..."
+    cp -a "${LOCAL_PROFILE}/." "${DEFAULT_PERSIST}/" 2>/dev/null || true
+    echo "Profile synced"
+  fi
+}
+
+trap 'sync_profile; exit 0' SIGTERM SIGINT
+
 echo "Starting Xvfb at ${SCREEN_WIDTH}x${SCREEN_HEIGHT}x${SCREEN_DEPTH}..."
 Xvfb "${DISPLAY}" -screen 0 "${SCREEN_WIDTH}x${SCREEN_HEIGHT}x${SCREEN_DEPTH}" -ac &
 sleep 1
@@ -85,7 +120,7 @@ echo "Starting Chromium (headful kiosk, CDP on port ${CHROME_CDP_PORT})..."
   --remote-debugging-address=0.0.0.0 \
   --remote-debugging-port="${CHROME_CDP_PORT}" \
   --remote-allow-origins=* \
-  --user-data-dir="${CHROME_PROFILE_DIR:-/tmp/chrome-profile}" \
+  --user-data-dir="${LOCAL_PROFILE}" \
   --window-size="${SCREEN_WIDTH},${SCREEN_HEIGHT}" \
   --window-position=0,0 \
   --kiosk \
@@ -129,5 +164,11 @@ echo "=== Browser sidecar ready ==="
 echo "  noVNC : http://0.0.0.0:${NOVNC_PORT}/vnc.html"
 echo "  CDP   : http://0.0.0.0:${CHROME_CDP_PORT}/json/version"
 echo "  Screen: ${SCREEN_WIDTH}x${SCREEN_HEIGHT}x${SCREEN_DEPTH}"
+
+# Periodically sync profile to fileshare (every 5 minutes)
+while true; do
+  sleep 300
+  sync_profile
+done &
 
 wait

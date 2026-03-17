@@ -205,7 +205,7 @@ export async function performSync(
   onStep: SyncStepCallback,
   signal: AbortSignal,
 ): Promise<SyncResult> {
-  const session = await connectBrowser();
+  const session = await connectBrowser(userId);
   const { page, context } = session;
 
   try {
@@ -284,6 +284,6 @@ export async function performSync(
 
     return { success: true, needsLogin: false };
   } finally {
-    await closeBrowserSession(session);
+    await closeBrowserSession(session, userId);
   }
 }

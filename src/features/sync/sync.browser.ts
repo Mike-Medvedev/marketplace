@@ -1,8 +1,12 @@
 import { chromium, type Browser, type BrowserContext, type Page } from "playwright-core";
+import { readFile, writeFile, mkdir } from "node:fs/promises";
+import { join } from "node:path";
 import { env } from "@/configs/env.ts";
 import { acquireLock, del } from "@/infra/redis/redis.client.ts";
 import { VNC_LOCK_KEY, SYNC_TIMEOUT_MS } from "./sync.constants.ts";
 import logger from "@/infra/logger/logger.ts";
+
+const PROFILE_DIR = process.env.CHROME_PROFILE_DIR || "";
 
 export interface BrowserSession {
   browser: Browser;
@@ -41,14 +45,43 @@ async function getSharedBrowser(): Promise<Browser> {
   return sharedBrowser;
 }
 
+function userProfilePath(userId: string): string {
+  return join(PROFILE_DIR, `${userId}.json`);
+}
+
+async function loadStorageState(userId: string): Promise<string | undefined> {
+  if (!PROFILE_DIR) return undefined;
+  try {
+    const data = await readFile(userProfilePath(userId), "utf-8");
+    logger.info(`[browser] Loaded saved profile for user ${userId}`);
+    return data;
+  } catch {
+    return undefined;
+  }
+}
+
+async function saveStorageState(context: BrowserContext, userId: string): Promise<void> {
+  if (!PROFILE_DIR) return;
+  try {
+    await mkdir(PROFILE_DIR, { recursive: true });
+    const state = await context.storageState();
+    await writeFile(userProfilePath(userId), JSON.stringify(state), "utf-8");
+    logger.info(`[browser] Saved profile for user ${userId}`);
+  } catch (error) {
+    logger.warn(`[browser] Failed to save profile for user ${userId}:`, error);
+  }
+}
+
 /**
  * Creates an isolated BrowserContext + Page for the automated sync flow.
- * Copies cookies from the default Chromium context (the persistent profile)
- * so the isolated context inherits any existing Facebook session.
- * Multiple users can run this concurrently without seeing each other's pages.
+ * If a saved profile exists for the user on the fileshare, restores it
+ * so the user is already logged in. Multiple users can run concurrently
+ * with fully isolated state.
  */
-export async function connectBrowser(): Promise<BrowserSession> {
+export async function connectBrowser(userId: string): Promise<BrowserSession> {
   const browser = await getSharedBrowser();
+
+  const storageState = await loadStorageState(userId);
 
   const context = await browser.newContext({
     viewport: { width: 1920, height: 1080 },
@@ -57,20 +90,12 @@ export async function connectBrowser(): Promise<BrowserSession> {
     userAgent:
       "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36",
     ignoreHTTPSErrors: true,
+    ...(storageState ? { storageState: JSON.parse(storageState) } : {}),
   });
-
-  const defaultContext = browser.contexts()[0];
-  if (defaultContext) {
-    const cookies = await defaultContext.cookies().catch(() => []);
-    if (cookies.length > 0) {
-      await context.addCookies(cookies);
-      logger.info(`[browser] Copied ${cookies.length} cookies from default context`);
-    }
-  }
 
   const page = await context.newPage();
 
-  logger.info("[browser] Isolated context created for sync session");
+  logger.info(`[browser] Context created for user ${userId}`);
   return { browser, context, page, ownsVnc: false };
 }
 
@@ -121,9 +146,14 @@ export async function releaseDisplayPage(session: BrowserSession): Promise<void>
   logger.info("[browser] Released VNC display page");
 }
 
-export async function closeBrowserSession(session: BrowserSession): Promise<void> {
+/**
+ * Persists the user's browser state (cookies + localStorage) to the
+ * fileshare, then closes the context.
+ */
+export async function closeBrowserSession(session: BrowserSession, userId: string): Promise<void> {
   await releaseDisplayPage(session);
   try {
+    await saveStorageState(session.context, userId);
     await session.context.close();
     logger.info("[browser] Context closed");
   } catch (error) {
