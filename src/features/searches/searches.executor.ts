@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { searchMarketPlace } from "@/features/scrape/scrape.service.ts";
 import { triggerAutoResync } from "@/features/sync/sync.service.ts";
+import { FacebookSessionExpiredError } from "@/shared/errors/errors.ts";
 import { filterListings } from "@/features/filter/filter.service.ts";
 import { write } from "@/infra/redis/redis.client.ts";
 import { publishSearchEvent } from "@/infra/redis/redis.pubsub.ts";
@@ -40,21 +41,15 @@ function deduplicateListings(
   });
 }
 
-interface ScrapeCountryResult {
-  listings: SearchMarketPlaceResult["listings"];
-  sessionExpired: boolean;
-}
-
 async function scrapeCountry(
   baseParams: SearchMarketPlaceParams,
   country: string,
   userId: string,
-): Promise<ScrapeCountryResult> {
+): Promise<SearchMarketPlaceResult["listings"]> {
   const coverage = COUNTRY_COVERAGE[country];
   if (!coverage) throw new Error(`Unsupported country: ${country}`);
 
   const allListings: SearchMarketPlaceResult["listings"] = [];
-  let sessionExpired = false;
 
   for (let i = 0; i < coverage.centers.length; i++) {
     const center = coverage.centers[i]!;
@@ -69,14 +64,13 @@ async function scrapeCountry(
     };
     const result = await searchMarketPlace(params, userId);
     allListings.push(...result.listings);
-    if (result.sessionExpired) sessionExpired = true;
 
     if (i < coverage.centers.length - 1) {
       await delay(DEFAULT_PAGE_DELAY_MS);
     }
   }
 
-  return { listings: deduplicateListings(allListings), sessionExpired };
+  return deduplicateListings(allListings);
 }
 
 function resultsKey(searchId: string, runId: string): string {
@@ -207,22 +201,12 @@ export async function runSearch(search: StoredSearch): Promise<SearchRunResults>
     );
 
     let listings: SearchMarketPlaceResult["listings"];
-    let sessionExpired: boolean;
 
     if (isCountrySearch) {
-      const result = await scrapeCountry(params, search.country!, search.userId);
-      listings = result.listings;
-      sessionExpired = result.sessionExpired;
+      listings = await scrapeCountry(params, search.country!, search.userId);
     } else {
       const result = await searchMarketPlace(params, search.userId);
       listings = result.listings;
-      sessionExpired = result.sessionExpired;
-    }
-
-    if (sessionExpired) {
-      triggerAutoResync(search.userId).catch((err) =>
-        logger.error(`[runSearch] Auto-resync failed for user ${search.userId}:`, err),
-      );
     }
 
     const runId = randomUUID();
@@ -241,7 +225,6 @@ export async function runSearch(search: StoredSearch): Promise<SearchRunResults>
       searchId: search.id,
       runId,
       listingCount: listings.length,
-      sessionExpired,
     }).catch((e) => logger.error(`[runSearch] Failed to publish completed event:`, e));
 
     if (search.prompt) {
@@ -256,9 +239,14 @@ export async function runSearch(search: StoredSearch): Promise<SearchRunResults>
       filterStatus,
       listings,
       filteredListings: null,
-      sessionExpired,
     };
   } catch (error) {
+    if (error instanceof FacebookSessionExpiredError) {
+      triggerAutoResync(search.userId).catch((err) =>
+        logger.error(`[runSearch] Auto-resync failed for user ${search.userId}:`, err),
+      );
+    }
+
     publishSearchEvent(search.id, {
       type: "failed",
       searchId: search.id,

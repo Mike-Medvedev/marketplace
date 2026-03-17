@@ -18,6 +18,21 @@ export async function getSession(userId: string): Promise<FacebookSession | null
   }
 }
 
+/** Returns true if the user has ever synced (has a row in facebook_sessions), regardless of whether the session is still valid. */
+export async function hasSessionRow(userId: string): Promise<boolean> {
+  try {
+    const [row] = await db
+      .select({ id: facebookSessions.userId })
+      .from(facebookSessions)
+      .where(eq(facebookSessions.userId, userId))
+      .limit(1);
+    return row != null;
+  } catch (err) {
+    logger.warn("[session-store] Failed to check session row:", err);
+    return false;
+  }
+}
+
 export async function setSession(
   userId: string,
   data: { headers: Record<string, string>; body: string; capturedAt: string },

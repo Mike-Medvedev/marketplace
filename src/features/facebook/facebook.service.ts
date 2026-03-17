@@ -1,6 +1,6 @@
 import { SessionNotLoadedError } from "@/shared/errors/errors.ts";
 import logger from "@/infra/logger/logger.ts";
-import { getSession } from "./facebook.repository.ts";
+import { getSession, hasSessionRow } from "./facebook.repository.ts";
 import {
   FIXED_HEADERS,
   BODY_DEFAULTS,
@@ -62,6 +62,9 @@ export async function hasSession(userId: string): Promise<boolean> {
   const session = await getSessionConfig(userId);
   return session !== null;
 }
+
+/** True if the user has ever synced (row exists), even if their session is expired/invalid. */
+export { hasSessionRow } from "./facebook.repository.ts";
 
 export async function isSessionValid(userId: string): Promise<boolean> {
   const session = await getSessionConfig(userId);

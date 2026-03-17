@@ -27,8 +27,6 @@ export async function notify(
   switch (method) {
     case "email":
       return sendEmailNotification(target, searchQuery, listings);
-    case "sms":
-      return sendSmsNotification(target, searchQuery, listings);
     case "webhook":
       return sendWebhookNotification(target, searchQuery, listings);
   }
@@ -56,16 +54,6 @@ async function sendEmailNotification(
     ].join("\n"),
   });
   logger.info(`[notify] Email sent to ${to} for "${searchQuery}" (${listings.length} listings)`);
-}
-
-async function sendSmsNotification(
-  _to: string,
-  searchQuery: string,
-  listings: ListingSummary[],
-): Promise<void> {
-  logger.warn(
-    `[notify] SMS not configured. Would send to ${_to}: "${searchQuery}" found ${listings.length} listing(s)`,
-  );
 }
 
 async function sendWebhookNotification(

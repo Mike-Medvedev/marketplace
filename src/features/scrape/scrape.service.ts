@@ -5,7 +5,7 @@ import {
   marketplaceProductListingPhotosRequestConfig,
   marketplaceProductListingDescriptionRequestConfig,
 } from "@/features/facebook/facebook.requests.ts";
-import { hasSession } from "@/features/facebook/facebook.service.ts";
+import { hasSession, hasSessionRow } from "@/features/facebook/facebook.service.ts";
 import type {
   MarketplaceListing,
   MarketplaceSearchConfig,
@@ -56,8 +56,13 @@ export async function searchMarketPlace(
     userAgent,
   } = params;
 
-  let isAuthenticated = userId ? await hasSession(userId) : false;
-  let sessionExpired = false;
+  const isAuthenticated = userId ? await hasSession(userId) : false;
+  const hasSynced = userId ? await hasSessionRow(userId) : false;
+
+  if (!isAuthenticated && hasSynced) {
+    logger.warn(`[searchMarketPlace] User has synced before but session is expired/invalid`);
+    throw new FacebookSessionExpiredError();
+  }
 
   logger.info(
     `[searchMarketPlace] Starting search — query="${params.query}", location="${params.location}", minPrice=${params.minPrice}, maxPrice=${params.maxPrice}, dateListedDays=${params.dateListedDays}, pageCount=${pageCount}, mode=${isAuthenticated ? "authenticated" : "anonymous"}`,
@@ -73,18 +78,7 @@ export async function searchMarketPlace(
 
   if (pageCount == null || pageCount <= 1) {
     logger.info(`[searchMarketPlace] Fetching single page...`);
-    try {
-      const result = await fetchOnePage(cursor, listingFetchDelayMs, searchConfig, userId, isAuthenticated, userAgent);
-      return { ...result, sessionExpired };
-    } catch (error) {
-      if (isAuthenticated && error instanceof FacebookSessionExpiredError) {
-        logger.warn(`[searchMarketPlace] Session expired, falling back to anonymous mode`);
-        sessionExpired = true;
-        const result = await fetchOnePage(cursor, listingFetchDelayMs, searchConfig, userId, false, userAgent);
-        return { ...result, sessionExpired };
-      }
-      throw error;
-    }
+    return fetchOnePage(cursor, listingFetchDelayMs, searchConfig, userId, isAuthenticated, userAgent);
   }
 
   const allListings: Omit<MarketplaceListing, "photos" | "description">[] = [];
@@ -92,25 +86,12 @@ export async function searchMarketPlace(
   let pageNum = 1;
 
   do {
-    try {
-      const page = await fetchOnePage(nextCursor, listingFetchDelayMs, searchConfig, userId, isAuthenticated, userAgent);
-      allListings.push(...page.listings);
-      pageNum++;
-      nextCursor = page.nextCursor;
-      logger.info("Fetched one page of listings...");
-    } catch (error) {
-      if (isAuthenticated && error instanceof FacebookSessionExpiredError) {
-        logger.warn(`[searchMarketPlace] Session expired mid-pagination, switching to anonymous mode`);
-        isAuthenticated = false;
-        sessionExpired = true;
-        const page = await fetchOnePage(nextCursor, listingFetchDelayMs, searchConfig, userId, false, userAgent);
-        allListings.push(...page.listings);
-        pageNum++;
-        nextCursor = page.nextCursor;
-      } else {
-        throw error;
-      }
-    }
+    const page = await fetchOnePage(nextCursor, listingFetchDelayMs, searchConfig, userId, isAuthenticated, userAgent);
+    allListings.push(...page.listings);
+    pageNum++;
+    nextCursor = page.nextCursor;
+    logger.info("Fetched one page of listings...");
+
     if (nextCursor != null && pageNum <= pageCount && pageDelayMs > 0) {
       logger.info(`Delaying next page to avoid rate limit for ${pageDelayMs}ms`);
       await delay(pageDelayMs);
@@ -121,11 +102,8 @@ export async function searchMarketPlace(
   return {
     listings: allListings,
     nextCursor,
-    sessionExpired,
   };
 }
-
-type FetchOnePageResult = Omit<SearchMarketPlaceResult, "sessionExpired">;
 
 async function fetchOnePage(
   cursor: string | null,
@@ -134,7 +112,7 @@ async function fetchOnePage(
   userId?: string,
   isAuthenticated: boolean = true,
   userAgent?: string,
-): Promise<FetchOnePageResult> {
+): Promise<SearchMarketPlaceResult> {
   const mode = isAuthenticated ? "authenticated" : "anonymous";
   logger.info(`[fetchOnePage] Requesting Facebook GraphQL [${mode}] (cursor=${cursor ? "yes" : "none"})`);
 

@@ -27,7 +27,6 @@ export const searchFrequencyEnum = pgEnum("search_frequency", [
 
 export const notificationMethodEnum = pgEnum("notification_method", [
   "email",
-  "sms",
   "webhook",
 ]);
 
@@ -41,7 +40,6 @@ export const users = pgTable("users", {
   id: uuid().primaryKey(),
   firstName: varchar("first_name"),
   lastName: varchar("last_name"),
-  phone: varchar("phone").unique(),
   email: text().unique(),
   stripeCustomerId: text("stripe_customer_id"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),

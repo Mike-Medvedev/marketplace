@@ -8,7 +8,6 @@ export const userSelectSchema = createSelectSchema(users);
 export const userUpdateSchema = createUpdateSchema(users).pick({
   firstName: true,
   lastName: true,
-  phone: true,
 });
 
 export type UserProfile = z.infer<typeof userSelectSchema>;

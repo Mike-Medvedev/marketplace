@@ -43,6 +43,13 @@
       "when": 1773760184089,
       "tag": "0005_cold_arclight",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1773766661483,
+      "tag": "0006_friendly_stardust",
+      "breakpoints": true
     }
   ]
 }
