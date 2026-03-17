@@ -16,11 +16,10 @@
   <script type="module">
     import RFB from "./core/rfb.js";
 
-    const host = window.location.hostname;
-    const port = window.location.port || "6080";
-    const path = "websockify";
-
-    const url = `${window.location.protocol === "https:" ? "wss" : "ws"}://${host}:${port}/${path}`;
+    const proto = window.location.protocol === "https:" ? "wss" : "ws";
+    const host = window.location.host;
+    const basePath = window.location.pathname.replace(/\/[^/]*$/, "");
+    const url = `${proto}://${host}${basePath}/websockify`;
 
     const rfb = new RFB(document.getElementById("screen"), url, {
       scaleViewport: true,
