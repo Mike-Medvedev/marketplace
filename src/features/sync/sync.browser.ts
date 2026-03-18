@@ -6,7 +6,7 @@ import { acquireLock, del } from "@/infra/redis/redis.client.ts";
 import { VNC_LOCK_KEY, SYNC_TIMEOUT_MS } from "./sync.constants.ts";
 import logger from "@/infra/logger/logger.ts";
 
-const PROFILE_DIR = env.CHROME_PROFILE_DIR ?? "";
+const PROFILE_DIR = env.CHROME_PROFILE_DIR ?? "/data/browser-profiles";
 
 export interface BrowserSession {
   browser: Browser;
