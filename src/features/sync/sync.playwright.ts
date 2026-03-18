@@ -229,6 +229,8 @@ export async function performSync(
       }
 
       try {
+        await displayPage.context().clearCookies({ domain: ".facebook.com" });
+
         await displayPage.goto("https://www.facebook.com/login", {
           waitUntil: "domcontentloaded",
           timeout: 60_000,

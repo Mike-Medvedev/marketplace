@@ -7,6 +7,7 @@ export const envSchema = z.object({
   ROBOFLOW_API_KEY: z.string().min(1),
 
   CHROMIUM_CDP_URL: z.string().min(1),
+  CHROME_PROFILE_DIR: z.string().min(1).optional(),
 
   SMTP_HOST: z.string().min(1),
   SMTP_PORT: z.coerce.number().min(1),

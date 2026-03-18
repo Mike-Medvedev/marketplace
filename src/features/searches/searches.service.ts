@@ -91,13 +91,13 @@ export async function deleteSearch(id: string, userId: string): Promise<boolean>
   return deleted;
 }
 
-export async function pauseAllSearches(): Promise<number> {
+export async function pauseAllSearches(userId?: string): Promise<number> {
   cancelAll();
-  return repository.pauseAllSearches();
+  return repository.pauseAllSearches(userId);
 }
 
-export async function resumeAllSearches(): Promise<number> {
-  return repository.resumeAllSearches();
+export async function resumeAllSearches(userId?: string): Promise<number> {
+  return repository.resumeAllSearches(userId);
 }
 
 export async function getSearchRuns(searchId: string, userId: string): Promise<SearchRun[]> {

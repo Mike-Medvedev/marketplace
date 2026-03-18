@@ -45,11 +45,11 @@ export async function triggerAutoResync(userId: string): Promise<void> {
     );
 
     if (result.success) {
-      const resumed = await resumeAllSearches();
+      const resumed = await resumeAllSearches(userId);
       logger.info(`[auto-resync] Session auto-refreshed for ${userId}, resumed ${resumed} searches`);
     } else if (result.needsLogin) {
-      const paused = await pauseAllSearches();
-      logger.warn(`[auto-resync] Paused ${paused} searches, sending email notification`);
+      const paused = await pauseAllSearches(userId);
+      logger.warn(`[auto-resync] Paused ${paused} searches for ${userId}, sending email notification`);
       try {
         await sendResyncEmail(env.SMTP_USER);
       } catch (error) {
@@ -58,8 +58,8 @@ export async function triggerAutoResync(userId: string): Promise<void> {
     }
   } catch (error) {
     logger.error(`[auto-resync] Sync failed for ${userId}:`, error);
-    const paused = await pauseAllSearches();
-    logger.warn(`[auto-resync] Paused ${paused} searches, sending email notification`);
+    const paused = await pauseAllSearches(userId);
+    logger.warn(`[auto-resync] Paused ${paused} searches for ${userId}, sending email notification`);
     try {
       await sendResyncEmail(env.SMTP_USER);
     } catch (emailError) {
