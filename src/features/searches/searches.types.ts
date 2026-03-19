@@ -50,6 +50,7 @@ export const createSearchBodySchema = createInsertSchema(searches, {
   prompt: true,
   webhookFilterUrl: true,
   country: true,
+  deduplicateResults: true,
 }).refine(
   (data) => data.location || data.country,
   { message: "Either location or country is required", path: ["location"] },
@@ -78,6 +79,7 @@ export const updateSearchBodySchema = createUpdateSchema(searches, {
   webhookFilterUrl: true,
   status: true,
   country: true,
+  deduplicateResults: true,
 }).refine(
   (data) => !(data.prompt && data.webhookFilterUrl),
   { message: "Cannot set both prompt and webhookFilterUrl — choose one filter method", path: ["webhookFilterUrl"] },
@@ -114,6 +116,7 @@ export const searchRunResultsSchema = z.object({
   filterStatus: filterStatusSchema,
   listings: z.array(listingSchema),
   filteredListings: z.array(listingSchema).nullable(),
+  newListings: z.array(listingSchema).nullable(),
 });
 
 export type FilterStatus = z.infer<typeof filterStatusSchema>;
@@ -127,7 +130,7 @@ export type SearchRun = z.infer<typeof searchRunSchema>;
 export type SearchRunResults = z.infer<typeof searchRunResultsSchema>;
 export type SearchEvent =
   | { status: "executing"; searchId: string }
-  | { status: "completed"; searchId: string; runId: string; listingCount: number }
+  | { status: "completed"; searchId: string; runId: string; listingCount: number; newListingCount: number | null }
   | { status: "filter_completed"; searchId: string; runId: string; filteredListingCount: number }
   | { status: "filter_failed"; searchId: string; runId: string; error: string }
   | { status: "failed"; searchId: string; error: string; errorName: string };

@@ -1,5 +1,5 @@
 import * as repository from "./searches.repository.ts";
-import { read } from "@/infra/redis/redis.client.ts";
+import { read, del } from "@/infra/redis/redis.client.ts";
 import {
   scheduleSearch,
   cancelSearch,
@@ -92,6 +92,7 @@ export async function deleteSearch(id: string, userId: string): Promise<boolean>
   const deleted = await repository.deleteSearch(id, userId);
   if (deleted) {
     cancelSearch(id);
+    del(`search:${id}:seen`).catch(() => {});
   }
   return deleted;
 }
@@ -131,12 +132,18 @@ export async function getSearchRunResults(
     filteredListings = filteredRaw ? JSON.parse(filteredRaw) : [];
   }
 
+  let newListings = null;
+  const newKey = `search:${searchId}:results:${runId}:new`;
+  const newRaw = await read(newKey);
+  if (newRaw) newListings = JSON.parse(newRaw);
+
   return {
     runId: run.id,
     executedAt: run.executedAt,
     filterStatus: run.filterStatus,
     listings,
     filteredListings,
+    newListings,
   };
 }
 

@@ -153,10 +153,11 @@ export async function createRun(
   redisResultKey: string,
   listingCount: number,
   filterStatus: FilterStatus = "none",
+  newListingCount: number | null = null,
 ) {
   const [run] = await db
     .insert(searchRuns)
-    .values({ id: runId, searchId, redisResultKey, listingCount, filterStatus })
+    .values({ id: runId, searchId, redisResultKey, listingCount, filterStatus, newListingCount })
     .returning();
   return run!;
 }

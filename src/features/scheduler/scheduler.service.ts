@@ -16,17 +16,23 @@ async function executeTick(search: StoredSearch): Promise<void> {
     const results = await runSearch(search);
 
     if (search.notificationOptIn) {
-      await notify(
-        search.notificationType,
-        search.notificationTarget,
-        search.query,
-        results.listings.map((l) => ({ id: l.id, title: l.title, price: l.price, url: l.url })),
-        results.runId,
-      );
+      const notifyListings = search.deduplicateResults && results.newListings
+        ? results.newListings
+        : results.listings;
+
+      if (notifyListings.length > 0) {
+        await notify(
+          search.notificationType,
+          search.notificationTarget,
+          search.query,
+          notifyListings.map((l) => ({ id: l.id, title: l.title, price: l.price, url: l.url })),
+          results.runId,
+        );
+      }
     }
 
     logger.info(
-      `[scheduler] Search "${search.query}" completed — ${results.listings.length} listings stored & notified`,
+      `[scheduler] Search "${search.query}" completed — ${results.listings.length} listings stored${search.deduplicateResults ? `, ${results.newListings?.length ?? 0} new` : ""}`,
     );
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);

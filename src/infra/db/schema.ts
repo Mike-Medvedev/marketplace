@@ -75,6 +75,7 @@ export const searches = pgTable("searches", {
   prompt: text(),
   webhookFilterUrl: text("webhook_filter_url"),
   country: text(),
+  deduplicateResults: boolean("deduplicate_results").notNull().default(false),
   status: searchStatusEnum().notNull().default("running"),
   lastRun: timestamp("last_run", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
@@ -97,6 +98,7 @@ export const searchRuns = pgTable("search_runs", {
   listingCount: integer("listing_count").notNull().default(0),
   filteredRedisResultKey: text("filtered_redis_result_key"),
   filteredListingCount: integer("filtered_listing_count"),
+  newListingCount: integer("new_listing_count"),
   filterStatus: filterStatusEnum("filter_status").notNull().default("none"),
   executedAt: timestamp("executed_at", { withTimezone: true }).notNull().defaultNow(),
 });

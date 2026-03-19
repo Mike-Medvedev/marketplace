@@ -3,7 +3,7 @@ import { searchMarketPlace } from "@/features/scrape/scrape.service.ts";
 import { triggerAutoResync } from "@/features/sync/sync.service.ts";
 import { FacebookSessionExpiredError } from "@/shared/errors/errors.ts";
 import { filterListings } from "@/features/filter/filter.service.ts";
-import { read, write, del } from "@/infra/redis/redis.client.ts";
+import { redis, read, write, del } from "@/infra/redis/redis.client.ts";
 import { publishSearchEvent } from "@/infra/redis/redis.pubsub.ts";
 import { RESULTS_TTL_SECONDS } from "@/features/scheduler/scheduler.constants.ts";
 import { DEFAULT_PAGE_DELAY_MS } from "@/features/scrape/scrape.constants.ts";
@@ -100,6 +100,24 @@ function resultsKey(searchId: string, runId: string): string {
 
 function filteredResultsKey(searchId: string, runId: string): string {
   return `search:${searchId}:results:${runId}:filtered`;
+}
+
+function newResultsKey(searchId: string, runId: string): string {
+  return `search:${searchId}:results:${runId}:new`;
+}
+
+function seenKey(searchId: string): string {
+  return `search:${searchId}:seen`;
+}
+
+async function getSeenIds(searchId: string): Promise<Set<string>> {
+  const ids = await redis.smembers(seenKey(searchId));
+  return new Set(ids);
+}
+
+async function addToSeenSet(searchId: string, ids: string[]): Promise<void> {
+  if (ids.length === 0) return;
+  await redis.sadd(seenKey(searchId), ...ids);
 }
 
 /**
@@ -251,9 +269,23 @@ export async function runSearch(search: StoredSearch): Promise<SearchRunResults>
     const redisKey = resultsKey(search.id, runId);
     await write(redisKey, JSON.stringify(listings), RESULTS_TTL_SECONDS);
 
+    let newListings: SearchMarketPlaceResult["listings"] | null = null;
+    let newListingCount: number | null = null;
+
+    if (search.deduplicateResults) {
+      const seenIds = await getSeenIds(search.id);
+      newListings = listings.filter((l) => !seenIds.has(l.id));
+      newListingCount = newListings.length;
+
+      await addToSeenSet(search.id, listings.map((l) => l.id));
+      await write(newResultsKey(search.id, runId), JSON.stringify(newListings), RESULTS_TTL_SECONDS);
+
+      logger.info(`[runSearch] Seen store: ${newListingCount} new out of ${listings.length} total`);
+    }
+
     const hasFilter = !!(search.prompt || search.webhookFilterUrl);
     const filterStatus: FilterStatus = hasFilter ? "pending" : "none";
-    await repository.createRun(runId, search.id, redisKey, listings.length, filterStatus);
+    await repository.createRun(runId, search.id, redisKey, listings.length, filterStatus, newListingCount);
     await repository.updateLastRun(search.id, new Date());
 
     logger.info(`[runSearch] "${search.query}" scraped — ${listings.length} listings stored`);
@@ -263,6 +295,7 @@ export async function runSearch(search: StoredSearch): Promise<SearchRunResults>
       searchId: search.id,
       runId,
       listingCount: listings.length,
+      newListingCount,
     }).catch((e) => logger.error(`[runSearch] Failed to publish completed event:`, e));
 
     if (search.prompt) {
@@ -277,6 +310,7 @@ export async function runSearch(search: StoredSearch): Promise<SearchRunResults>
       filterStatus,
       listings,
       filteredListings: null,
+      newListings,
     };
   } catch (error) {
     await del(executingKey(search.id)).catch(() => {});
