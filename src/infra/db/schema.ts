@@ -31,6 +31,7 @@ export const notificationMethodEnum = pgEnum("notification_method", [
 ]);
 
 export const dateListedOptionEnum = pgEnum("date_listed_option", [
+  "all",
   "24h",
   "7d",
   "30d",

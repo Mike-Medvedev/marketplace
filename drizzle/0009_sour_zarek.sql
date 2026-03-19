@@ -1,0 +1,1 @@
+ALTER TYPE "public"."date_listed_option" ADD VALUE 'all' BEFORE '24h';

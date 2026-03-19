@@ -30,6 +30,13 @@ export async function isSearchExecuting(searchId: string): Promise<boolean> {
   return val !== null;
 }
 
+const DATE_LISTED_TO_DAYS: Record<string, 1 | 7 | 30 | undefined> = {
+  all: undefined,
+  "24h": 1,
+  "7d": 7,
+  "30d": 30,
+};
+
 function toScrapeParams(search: StoredSearch): SearchMarketPlaceParams {
   const params: SearchMarketPlaceParams = {
     query: search.query,
@@ -38,6 +45,8 @@ function toScrapeParams(search: StoredSearch): SearchMarketPlaceParams {
   if (!search.country) params.location = search.location;
   if (search.minPrice != null) params.minPrice = search.minPrice;
   if (search.maxPrice != null) params.maxPrice = search.maxPrice;
+  const days = DATE_LISTED_TO_DAYS[search.dateListed];
+  if (days != null) params.dateListedDays = days;
   return params;
 }
 

@@ -19,10 +19,17 @@ function parseBody(body: any): Record<string, string> {
   return (body as Record<string, string>) ?? {};
 }
 
+/** Converts a day count (1, 7, 30) into the semicolon-separated Unix epoch day numbers Facebook expects. */
+function buildCtimeDays(days: 1 | 7 | 30): string {
+  const todayEpochDay = Math.floor(Date.now() / 86_400_000) - 1;
+  return Array.from({ length: days + 1 }, (_, i) => todayEpochDay - i).join(";");
+}
+
 function resolveSearchConfig(overrides?: Partial<MarketplaceSearchConfig>) {
   const query = encodeURIComponent(overrides?.query ?? DEFAULT_SEARCH_CONFIG.query);
   const minPriceDollars = overrides?.minPrice ?? DEFAULT_SEARCH_CONFIG.minPrice;
   const maxPriceDollars = overrides?.maxPrice ?? DEFAULT_SEARCH_CONFIG.maxPrice;
+  const rawDays = overrides?.dateListedDays ?? DEFAULT_SEARCH_CONFIG.dateListedDays;
   return {
     queryEncoded: query,
     locationId: overrides?.locationId ?? DEFAULT_SEARCH_CONFIG.locationId,
@@ -31,7 +38,7 @@ function resolveSearchConfig(overrides?: Partial<MarketplaceSearchConfig>) {
     radiusKm: Math.min(overrides?.radiusKm ?? DEFAULT_SEARCH_CONFIG.radiusKm, MAX_RADIUS_KM),
     minPriceCents: minPriceDollars * 100,
     maxPriceCents: maxPriceDollars != null ? maxPriceDollars * 100 : null,
-    dateListedDays: overrides?.dateListedDays ?? DEFAULT_SEARCH_CONFIG.dateListedDays,
+    ctimeDays: rawDays != null ? buildCtimeDays(rawDays) : null,
   };
 }
 
@@ -56,7 +63,7 @@ const marketplaceSearchParams = (
         commerce_search_and_rp_available: true,
         commerce_search_and_rp_category_id: [],
         commerce_search_and_rp_condition: null,
-        commerce_search_and_rp_ctime_days: config.dateListedDays,
+        commerce_search_and_rp_ctime_days: config.ctimeDays,
         filter_location_latitude: config.latitude,
         filter_location_longitude: config.longitude,
         filter_price_lower_bound: config.minPriceCents,
@@ -259,7 +266,7 @@ export async function marketplaceAnonSearchRequestConfig(
         commerce_search_and_rp_available: true,
         commerce_search_and_rp_category_id: [],
         commerce_search_and_rp_condition: null,
-        commerce_search_and_rp_ctime_days: config.dateListedDays,
+        commerce_search_and_rp_ctime_days: config.ctimeDays,
         filter_location_latitude: config.latitude,
         filter_location_longitude: config.longitude,
         filter_price_lower_bound: config.minPriceCents,
