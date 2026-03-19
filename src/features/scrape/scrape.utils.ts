@@ -48,6 +48,7 @@ export function pickSearchConfig(
   if (params.minPrice != null) config.minPrice = params.minPrice;
   if (params.maxPrice != null) config.maxPrice = params.maxPrice;
   if (params.dateListedDays != null) config.dateListedDays = params.dateListedDays;
+  if (params.sortBy != null) config.sortBy = params.sortBy;
   return config;
 }
 

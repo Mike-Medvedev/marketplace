@@ -47,6 +47,7 @@ function toScrapeParams(search: StoredSearch): SearchMarketPlaceParams {
   if (search.maxPrice != null) params.maxPrice = search.maxPrice;
   const days = DATE_LISTED_TO_DAYS[search.dateListed];
   if (days != null) params.dateListedDays = days;
+  if (search.sortBy != null) params.sortBy = search.sortBy;
   return params;
 }
 

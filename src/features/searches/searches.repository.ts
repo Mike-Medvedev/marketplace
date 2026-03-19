@@ -6,7 +6,7 @@ import type { StoredSearch, CreateSearchBody, UpdateSearchBody, FilterStatus } f
 
 type SearchCriteria = Pick<
   typeof SearchesTable.$inferSelect,
-  "query" | "location" | "country" | "minPrice" | "maxPrice" | "dateListed" | "prompt" | "webhookFilterUrl"
+  "query" | "location" | "country" | "minPrice" | "maxPrice" | "dateListed" | "sortBy" | "prompt" | "webhookFilterUrl"
 >;
 
 export async function findDuplicate(
@@ -20,6 +20,7 @@ export async function findDuplicate(
     eq(searches.location, criteria.location),
     eq(searches.minPrice, criteria.minPrice),
     eq(searches.dateListed, criteria.dateListed),
+    eq(searches.sortBy, criteria.sortBy),
     criteria.maxPrice != null
       ? eq(searches.maxPrice, criteria.maxPrice)
       : isNull(searches.maxPrice),

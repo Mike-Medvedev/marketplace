@@ -16,6 +16,7 @@ export const DEFAULT_SEARCH_CONFIG = {
   minPrice: 0,
   maxPrice: null,
   dateListedDays: null,
+  sortBy: "BEST_MATCH",
 } as const;
 
 export const SCRAPE_PARAM_KEYS: (keyof SearchMarketPlaceParams)[] = [
@@ -25,6 +26,7 @@ export const SCRAPE_PARAM_KEYS: (keyof SearchMarketPlaceParams)[] = [
   "minPrice",
   "maxPrice",
   "dateListedDays",
+  "sortBy",
   "cursor",
   "pageCount",
   "pageDelayMs",

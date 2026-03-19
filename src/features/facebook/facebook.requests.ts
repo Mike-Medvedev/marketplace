@@ -39,6 +39,7 @@ function resolveSearchConfig(overrides?: Partial<MarketplaceSearchConfig>) {
     minPriceCents: minPriceDollars * 100,
     maxPriceCents: maxPriceDollars != null ? maxPriceDollars * 100 : null,
     ctimeDays: rawDays != null ? buildCtimeDays(rawDays) : null,
+    sortBy: overrides?.sortBy ?? DEFAULT_SEARCH_CONFIG.sortBy,
   };
 }
 
@@ -69,6 +70,7 @@ const marketplaceSearchParams = (
         filter_price_lower_bound: config.minPriceCents,
         filter_price_upper_bound: config.maxPriceCents ?? 214748364700,
         filter_radius_km: config.radiusKm,
+        commerce_search_sort_by: config.sortBy,
       },
       custom_request_params: {
         browse_context: null,
@@ -272,6 +274,7 @@ export async function marketplaceAnonSearchRequestConfig(
         filter_price_lower_bound: config.minPriceCents,
         filter_price_upper_bound: config.maxPriceCents ?? 214748364700,
         filter_radius_km: config.radiusKm,
+        commerce_search_sort_by: config.sortBy,
       },
       custom_request_params: {
         browse_context: null,

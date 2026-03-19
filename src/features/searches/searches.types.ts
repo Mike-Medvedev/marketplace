@@ -7,6 +7,7 @@ import {
   searchFrequencyEnum,
   notificationMethodEnum,
   dateListedOptionEnum,
+  sortByEnum,
   filterStatusEnum,
 } from "@/infra/db/schema.ts";
 import { SUPPORTED_COUNTRIES } from "./searches.constants.ts";
@@ -15,6 +16,7 @@ export const searchStatusSchema = createSelectSchema(searchStatusEnum);
 export const searchFrequencySchema = createSelectSchema(searchFrequencyEnum);
 export const notificationMethodSchema = createSelectSchema(notificationMethodEnum);
 export const dateListedOptionSchema = createSelectSchema(dateListedOptionEnum);
+export const sortBySchema = createSelectSchema(sortByEnum);
 
 export const storedSearchSchema = createSelectSchema(searches);
 
@@ -39,6 +41,7 @@ export const createSearchBodySchema = createInsertSchema(searches, {
   minPrice: true,
   maxPrice: true,
   dateListed: true,
+  sortBy: true,
   frequency: true,
   listingsPerCheck: true,
   notificationOptIn: true,
@@ -65,6 +68,7 @@ export const updateSearchBodySchema = createUpdateSchema(searches, {
   minPrice: true,
   maxPrice: true,
   dateListed: true,
+  sortBy: true,
   frequency: true,
   listingsPerCheck: true,
   notificationOptIn: true,

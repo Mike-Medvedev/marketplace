@@ -1,0 +1,2 @@
+CREATE TYPE "public"."sort_by" AS ENUM('BEST_MATCH', 'CREATION_TIME_DESCEND', 'DISTANCE_ASCEND', 'PRICE_ASCEND', 'PRICE_DESCEND');--> statement-breakpoint
+ALTER TABLE "searches" ADD COLUMN "sort_by" "sort_by" DEFAULT 'BEST_MATCH' NOT NULL;

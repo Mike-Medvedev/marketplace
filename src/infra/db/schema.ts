@@ -37,6 +37,14 @@ export const dateListedOptionEnum = pgEnum("date_listed_option", [
   "30d",
 ]);
 
+export const sortByEnum = pgEnum("sort_by", [
+  "BEST_MATCH",
+  "CREATION_TIME_DESCEND",
+  "DISTANCE_ASCEND",
+  "PRICE_ASCEND",
+  "PRICE_DESCEND",
+]);
+
 export const users = pgTable("users", {
   id: uuid().primaryKey(),
   firstName: varchar("first_name"),
@@ -58,6 +66,7 @@ export const searches = pgTable("searches", {
   minPrice: integer("min_price").notNull().default(0),
   maxPrice: integer("max_price"),
   dateListed: dateListedOptionEnum("date_listed").notNull(),
+  sortBy: sortByEnum("sort_by").notNull().default("BEST_MATCH"),
   frequency: searchFrequencyEnum().notNull(),
   listingsPerCheck: integer("listings_per_check").notNull().default(24),
   notificationOptIn: boolean("notification_opt_in").notNull().default(true),

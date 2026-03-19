@@ -42,6 +42,7 @@ export async function createSearch(userId: string, body: CreateSearchBody): Prom
     minPrice: body.minPrice ?? 0,
     maxPrice: body.maxPrice ?? null,
     dateListed: body.dateListed,
+    sortBy: body.sortBy,
     prompt: body.prompt ?? null,
     webhookFilterUrl: body.webhookFilterUrl ?? null,
   });
@@ -69,6 +70,7 @@ export async function updateSearch(id: string, userId: string, body: UpdateSearc
     minPrice: body.minPrice ?? existing.minPrice,
     maxPrice: body.maxPrice !== undefined ? body.maxPrice : existing.maxPrice,
     dateListed: body.dateListed ?? existing.dateListed,
+    sortBy: body.sortBy ?? existing.sortBy,
     prompt: body.prompt !== undefined ? body.prompt : existing.prompt,
     webhookFilterUrl: body.webhookFilterUrl !== undefined ? body.webhookFilterUrl : existing.webhookFilterUrl,
   };

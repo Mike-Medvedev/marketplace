@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { searchFrequencySchema, type SearchFrequency } from "@/features/searches/searches.types.ts";
+import { searchFrequencySchema, sortBySchema, type SearchFrequency } from "@/features/searches/searches.types.ts";
 
 export interface MarketplaceListing {
   id: string;
@@ -31,6 +31,8 @@ export interface MarketplaceSearchConfig {
   maxPrice?: number;
   /** Only show listings created within the last N days (1, 7, or 30). Omit for all listings. */
   dateListedDays?: 1 | 7 | 30;
+  /** Sort order for search results. Default "BEST_MATCH". */
+  sortBy?: "BEST_MATCH" | "CREATION_TIME_DESCEND" | "DISTANCE_ASCEND" | "PRICE_ASCEND" | "PRICE_DESCEND";
 }
 
 export interface SearchMarketPlaceParams {
@@ -50,6 +52,8 @@ export interface SearchMarketPlaceParams {
   maxPrice?: number;
   /** Only show listings created within the last N days (1, 7, or 30). Omit for all listings. */
   dateListedDays?: 1 | 7 | 30;
+  /** Sort order for search results. Default "BEST_MATCH". */
+  sortBy?: "BEST_MATCH" | "CREATION_TIME_DESCEND" | "DISTANCE_ASCEND" | "PRICE_ASCEND" | "PRICE_DESCEND";
   /** Pagination cursor from previous response. Omit for first page. */
   cursor?: string | null;
   /** Fetch exactly this many pages (e.g. 5 for page1..page5). */
@@ -91,6 +95,7 @@ export const searchMarketPlaceParamsSchema = z
     minPrice: z.coerce.number().optional(),
     maxPrice: z.coerce.number().optional(),
     dateListedDays: z.coerce.number().pipe(z.union([z.literal(1), z.literal(7), z.literal(30)])).optional(),
+    sortBy: sortBySchema.optional(),
     pageCount: z.coerce.number().max(20).optional(),
     pageDelayMs: z.coerce.number().optional(),
     listingFetchDelayMs: z.coerce.number().optional(),
