@@ -8,7 +8,7 @@
     "start": "tsx --env-file .env ./src/server.ts",
     "type": "tsc --noEmit",
     "db:generate": "npx drizzle-kit generate --config=src/configs/drizzle.config.ts",
-    "db:custom": "npx drizzle-kit generate --custom",
+    "db:custom": "npx drizzle-kit generate --custom --config=src/configs/drizzle.config.ts",
     "db:migrate": "npx drizzle-kit migrate --config=src/configs/drizzle.config.ts"
   },
   "keywords": [],
