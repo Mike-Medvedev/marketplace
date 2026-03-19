@@ -232,7 +232,7 @@ export async function runSearch(search: StoredSearch): Promise<SearchRunResults>
       const allListings: SearchMarketPlaceResult["listings"] = [];
       for (let i = 0; i < terms.length; i++) {
         logger.info(`[runSearch] Multi-query term ${i + 1}/${terms.length}: "${terms[i]}"`);
-        const result = await searchMarketPlace({ ...params, query: terms[i] }, search.userId);
+        const result = await searchMarketPlace({ ...params, query: terms[i]! }, search.userId);
         allListings.push(...result.listings);
         if (i < terms.length - 1) {
           await delay(DEFAULT_PAGE_DELAY_MS);
