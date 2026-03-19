@@ -140,7 +140,9 @@ async function fetchOnePage(
     };
   };
   try {
-    const jsonText = rawText.startsWith("for (;;);") ? rawText.slice(9) : rawText;
+    let jsonText = rawText.startsWith("for (;;);") ? rawText.slice(9) : rawText;
+    const newlineIdx = jsonText.indexOf("\n");
+    if (newlineIdx !== -1) jsonText = jsonText.slice(0, newlineIdx);
     json = JSON.parse(jsonText);
   } catch (error) {
     logger.error(
