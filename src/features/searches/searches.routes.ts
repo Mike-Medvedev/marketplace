@@ -12,6 +12,8 @@ import {
   searchRunResultsSchema,
 } from "./searches.types.ts";
 import { SearchesController } from "./searches.controller.ts";
+import { FilterController } from "@/features/filter/filter.controller.ts";
+import { aiFilterRequestSchema, aiFilterResponseSchema } from "@/features/filter/filter.types.ts";
 
 export const searchesRouter = TypedRouter(express.Router(), {
   tag: "Searches",
@@ -122,4 +124,17 @@ searchesRouter.get(
     summary: "Get the listing results for a specific search run (from cache)",
   },
   SearchesController.handleGetSearchRunResults,
+);
+
+searchesRouter.post(
+  "/:id/runs/:runId/ai-filter",
+  {
+    operationId: "aiFilterRunListings",
+    params: searchRunParamsSchema,
+    request: aiFilterRequestSchema,
+    response: SuccessSchema(aiFilterResponseSchema),
+    responses: { 404: ErrorSchema },
+    summary: "Filter a run's listings using an AI prompt and return matching listing IDs",
+  },
+  FilterController.handleAiFilter,
 );
