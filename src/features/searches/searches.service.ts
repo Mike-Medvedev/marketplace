@@ -34,6 +34,7 @@ export async function getSearchById(id: string, userId: string): Promise<ActiveS
 
 export async function createSearch(userId: string, body: CreateSearchBody): Promise<ActiveSearch> {
   const location = body.location || COUNTRY_COVERAGE[body.country!]!.label;
+  const sortBy = body.sortBy ?? "BEST_MATCH";
 
   const duplicate = await repository.findDuplicate(userId, {
     query: body.query,
@@ -42,7 +43,7 @@ export async function createSearch(userId: string, body: CreateSearchBody): Prom
     minPrice: body.minPrice ?? 0,
     maxPrice: body.maxPrice ?? null,
     dateListed: body.dateListed,
-    sortBy: body.sortBy,
+    sortBy,
     prompt: body.prompt ?? null,
     webhookFilterUrl: body.webhookFilterUrl ?? null,
   });

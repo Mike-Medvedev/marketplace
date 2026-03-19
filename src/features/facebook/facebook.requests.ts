@@ -26,12 +26,13 @@ function buildCtimeDays(days: 1 | 7 | 30): string {
 }
 
 function resolveSearchConfig(overrides?: Partial<MarketplaceSearchConfig>) {
-  const query = encodeURIComponent(overrides?.query ?? DEFAULT_SEARCH_CONFIG.query);
+  const query = overrides?.query ?? DEFAULT_SEARCH_CONFIG.query;
   const minPriceDollars = overrides?.minPrice ?? DEFAULT_SEARCH_CONFIG.minPrice;
   const maxPriceDollars = overrides?.maxPrice ?? DEFAULT_SEARCH_CONFIG.maxPrice;
   const rawDays = overrides?.dateListedDays ?? DEFAULT_SEARCH_CONFIG.dateListedDays;
   return {
-    queryEncoded: query,
+    query,
+    queryEncoded: encodeURIComponent(query),
     locationId: overrides?.locationId ?? DEFAULT_SEARCH_CONFIG.locationId,
     latitude: overrides?.latitude ?? DEFAULT_SEARCH_CONFIG.latitude,
     longitude: overrides?.longitude ?? DEFAULT_SEARCH_CONFIG.longitude,
@@ -57,7 +58,7 @@ const marketplaceSearchParams = (
     count: 24,
     cursor,
     params: {
-      bqf: { callsite: "COMMERCE_MKTPLACE_WWW", query: config.queryEncoded },
+      bqf: { callsite: "COMMERCE_MKTPLACE_WWW", query: config.query },
       browse_request_params: {
         commerce_enable_local_pickup: true,
         commerce_enable_shipping: true,
@@ -86,11 +87,11 @@ const marketplaceSearchParams = (
       },
     },
     savedSearchID: null,
-    savedSearchQuery: config.queryEncoded,
+    savedSearchQuery: config.query,
     scale: 2,
     searchPopularSearchesParams: {
       location_id: config.locationId,
-      query: config.queryEncoded,
+      query: config.query,
     },
     shouldIncludePopularSearches: false,
     topicPageParams: { location_id: config.locationId, url: null },
@@ -261,7 +262,7 @@ export async function marketplaceAnonSearchRequestConfig(
     count: 24,
     cursor,
     params: {
-      bqf: { callsite: "COMMERCE_MKTPLACE_WWW", query: config.queryEncoded },
+      bqf: { callsite: "COMMERCE_MKTPLACE_WWW", query: config.query },
       browse_request_params: {
         commerce_enable_local_pickup: true,
         commerce_enable_shipping: true,
@@ -290,11 +291,11 @@ export async function marketplaceAnonSearchRequestConfig(
       },
     },
     savedSearchID: null,
-    savedSearchQuery: config.queryEncoded,
+    savedSearchQuery: config.query,
     scale: 2,
     searchPopularSearchesParams: {
       location_id: config.locationId,
-      query: config.queryEncoded,
+      query: config.query,
     },
     shouldIncludePopularSearches: true,
     topicPageParams: { location_id: config.locationId, url: null },
