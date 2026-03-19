@@ -18,11 +18,16 @@ interface ListingSummary {
 
 export async function notify(
   method: NotificationMethod,
-  target: string,
+  target: string | null,
   searchQuery: string,
   listings: ListingSummary[],
 ): Promise<void> {
-  if (listings.length === 0) return;
+  if (method === "none" || listings.length === 0) return;
+
+  if (!target) {
+    logger.warn(`[notify] Skipping — no target for method "${method}" on search "${searchQuery}"`);
+    return;
+  }
 
   switch (method) {
     case "email":

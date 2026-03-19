@@ -29,7 +29,7 @@ const countrySchema = z.enum(SUPPORTED_COUNTRIES as [string, ...string[]]);
 export const createSearchBodySchema = createInsertSchema(searches, {
   query: (schema) => schema.min(1),
   location: (schema) => schema.min(1).optional(),
-  notificationTarget: (schema) => schema.min(1),
+  notificationTarget: (schema) => schema.min(1).nullable().optional(),
   listingsPerCheck: (schema) => schema.min(1).max(20),
   country: () => countrySchema.nullable().optional(),
   webhookFilterUrl: (schema) => schema.url().nullable().optional(),
@@ -52,6 +52,9 @@ export const createSearchBodySchema = createInsertSchema(searches, {
 ).refine(
   (data) => !(data.prompt && data.webhookFilterUrl),
   { message: "Cannot set both prompt and webhookFilterUrl — choose one filter method", path: ["webhookFilterUrl"] },
+).refine(
+  (data) => data.notificationType === "none" || (data.notificationTarget && data.notificationTarget.length > 0),
+  { message: "notificationTarget is required when notificationType is email or webhook", path: ["notificationTarget"] },
 );
 
 export const updateSearchBodySchema = createUpdateSchema(searches, {
@@ -75,6 +78,9 @@ export const updateSearchBodySchema = createUpdateSchema(searches, {
 }).refine(
   (data) => !(data.prompt && data.webhookFilterUrl),
   { message: "Cannot set both prompt and webhookFilterUrl — choose one filter method", path: ["webhookFilterUrl"] },
+).refine(
+  (data) => !data.notificationType || data.notificationType === "none" || (data.notificationTarget && data.notificationTarget.length > 0),
+  { message: "notificationTarget is required when notificationType is email or webhook", path: ["notificationTarget"] },
 );
 
 export const searchIdParamsSchema = z.object({
