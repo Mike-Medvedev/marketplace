@@ -57,6 +57,13 @@
       "when": 1773937534757,
       "tag": "0007_safe_spectrum",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1773935862842,
+      "tag": "0008_busy_abomination",
+      "breakpoints": true
     }
   ]
 }
