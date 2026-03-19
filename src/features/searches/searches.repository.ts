@@ -130,6 +130,7 @@ export async function getRunsBySearchId(searchId: string) {
       searchId: searchRuns.searchId,
       listingCount: searchRuns.listingCount,
       filteredListingCount: searchRuns.filteredListingCount,
+      newListingCount: searchRuns.newListingCount,
       filterStatus: searchRuns.filterStatus,
       executedAt: searchRuns.executedAt,
     })
