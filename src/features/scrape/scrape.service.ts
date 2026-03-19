@@ -120,10 +120,6 @@ async function fetchOnePage(
     ? await marketplaceSearchRequestConfig(userId!, cursor, searchConfig, userAgent)
     : await marketplaceAnonSearchRequestConfig(cursor, searchConfig, userAgent);
 
-  const bodyParams = Object.fromEntries(new URLSearchParams(requestConfig.body));
-  const variables = bodyParams.variables ? JSON.parse(bodyParams.variables) : null;
-  logger.info(`[fetchOnePage] Request variables: ${JSON.stringify(variables, null, 2)}`);
-
   const response = await fetch(FB_GRAPHQL_URL, requestConfig);
 
   if (!response.ok) {

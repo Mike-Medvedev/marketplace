@@ -224,9 +224,22 @@ export async function runSearch(search: StoredSearch): Promise<SearchRunResults>
     );
 
     let listings: SearchMarketPlaceResult["listings"];
+    const terms = (params.query ?? "").split(",").map((t) => t.trim()).filter(Boolean);
 
     if (isCountrySearch) {
       listings = await scrapeCountry(params, search.country!, search.userId);
+    } else if (terms.length > 1) {
+      const allListings: SearchMarketPlaceResult["listings"] = [];
+      for (let i = 0; i < terms.length; i++) {
+        logger.info(`[runSearch] Multi-query term ${i + 1}/${terms.length}: "${terms[i]}"`);
+        const result = await searchMarketPlace({ ...params, query: terms[i] }, search.userId);
+        allListings.push(...result.listings);
+        if (i < terms.length - 1) {
+          await delay(DEFAULT_PAGE_DELAY_MS);
+        }
+      }
+      listings = deduplicateListings(allListings);
+      logger.info(`[runSearch] Multi-query aggregated ${allListings.length} → ${listings.length} after dedup`);
     } else {
       const result = await searchMarketPlace(params, search.userId);
       listings = result.listings;
