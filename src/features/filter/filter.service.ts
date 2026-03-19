@@ -16,12 +16,18 @@ Guidelines:
 - Price alone is not a reason to exclude unless the criteria explicitly set a price threshold.
 - Your output must be valid JSON matching the required schema.`;
 
-export async function filterListings(
-  listings: Omit<MarketplaceListing, "photos" | "description">[],
+type Listing = Omit<MarketplaceListing, "photos" | "description">;
+
+const CHUNK_SIZE = 500;
+
+async function filterChunk(
+  client: OpenAI,
+  chunk: Listing[],
   prompt: string,
-): Promise<Omit<MarketplaceListing, "photos" | "description">[]> {
-  logger.info(`[filterListings] Filtering ${listings.length} listings with AI prompt`);
-  const client = new OpenAI();
+  chunkIndex: number,
+  totalChunks: number,
+): Promise<Set<string>> {
+  logger.info(`[filterListings] Chunk ${chunkIndex + 1}/${totalChunks}: filtering ${chunk.length} listings`);
   const { output_text, error } = await client.responses.create({
     model: "gpt-4.1-mini",
     instructions: SYSTEM_PROMPT,
@@ -31,7 +37,7 @@ export async function filterListings(
         content: [
           {
             type: "input_text",
-            text: `## Filtering Criteria\n\n${prompt}\n\n## Listings\n\n${JSON.stringify(listings)}`,
+            text: `## Filtering Criteria\n\n${prompt}\n\n## Listings\n\n${JSON.stringify(chunk)}`,
           },
         ],
       },
@@ -40,12 +46,32 @@ export async function filterListings(
       format: zodTextFormat(ListingsModel, "listings"),
     },
   });
-  if (error) {
-    throw error;
-  }
+  if (error) throw error;
 
   const parsed = ListingsModel.parse(JSON.parse(output_text ?? "{}"));
-  const keepIds = new Set(parsed.filtered.map((l) => l.id));
+  const ids = new Set(parsed.filtered.map((l) => l.id));
+  logger.info(`[filterListings] Chunk ${chunkIndex + 1}/${totalChunks}: kept ${ids.size}/${chunk.length}`);
+  return ids;
+}
+
+export async function filterListings(listings: Listing[], prompt: string): Promise<Listing[]> {
+  logger.info(`[filterListings] Filtering ${listings.length} listings with AI prompt`);
+  const client = new OpenAI();
+
+  const chunks: Listing[][] = [];
+  for (let i = 0; i < listings.length; i += CHUNK_SIZE) {
+    chunks.push(listings.slice(i, i + CHUNK_SIZE));
+  }
+
+  const chunkResults = await Promise.all(
+    chunks.map((chunk, i) => filterChunk(client, chunk, prompt, i, chunks.length)),
+  );
+
+  const keepIds = new Set<string>();
+  for (const ids of chunkResults) {
+    for (const id of ids) keepIds.add(id);
+  }
+
   const result = listings.filter((l) => keepIds.has(l.id));
   logger.info(`[filterListings] AI kept ${result.length} of ${listings.length} listings`);
   return result;
