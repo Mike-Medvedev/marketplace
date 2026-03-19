@@ -49,7 +49,9 @@ export async function createSearch(userId: string, body: CreateSearchBody): Prom
 
   const normalized = { ...body, location };
   const search = await repository.createSearch(userId, normalized);
-  scheduleSearch(search);
+  if (search.notificationOptIn) {
+    scheduleSearch(search);
+  }
   return await enrichWithScheduleState(search);
 }
 

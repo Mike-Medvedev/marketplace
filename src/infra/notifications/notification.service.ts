@@ -18,20 +18,16 @@ interface ListingSummary {
 
 export async function notify(
   method: NotificationMethod,
-  target: string | null,
+  target: string,
   searchQuery: string,
   listings: ListingSummary[],
+  runId: string,
 ): Promise<void> {
-  if (method === "none" || listings.length === 0) return;
-
-  if (!target) {
-    logger.warn(`[notify] Skipping — no target for method "${method}" on search "${searchQuery}"`);
-    return;
-  }
+  if (listings.length === 0) return;
 
   switch (method) {
     case "email":
-      return sendEmailNotification(target, searchQuery, listings);
+      return sendEmailNotification(target, searchQuery, listings, runId);
     case "webhook":
       return sendWebhookNotification(target, searchQuery, listings);
   }
@@ -41,11 +37,14 @@ async function sendEmailNotification(
   to: string,
   searchQuery: string,
   listings: ListingSummary[],
+  runId: string,
 ): Promise<void> {
   const listingLines = listings
     .slice(0, 20)
     .map((l) => `• ${l.title} — $${l.price}\n  ${l.url}`)
     .join("\n");
+
+  const resultsUrl = `https://marketscrape.com/results/${runId}`;
 
   await transporter.sendMail({
     from: env.SMTP_USER,
@@ -56,6 +55,8 @@ async function sendEmailNotification(
       "",
       listingLines,
       listings.length > 20 ? `\n...and ${listings.length - 20} more` : "",
+      "",
+      `View all results: ${resultsUrl}`,
     ].join("\n"),
   });
   logger.info(`[notify] Email sent to ${to} for "${searchQuery}" (${listings.length} listings)`);

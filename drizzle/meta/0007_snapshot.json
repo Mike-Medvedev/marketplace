@@ -1,5 +1,5 @@
 {
-  "id": "5ab77003-6592-4ce6-8d58-548cca517366",
+  "id": "b020ad13-9085-49dd-8cb9-fbcddedc1dc8",
   "prevId": "930a6cfb-be77-424f-bc58-eb4eec787890",
   "version": "7",
   "dialect": "postgresql",
@@ -220,19 +220,25 @@
           "notNull": true,
           "default": 24
         },
+        "notification_opt_in": {
+          "name": "notification_opt_in",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": true
+        },
         "notification_type": {
           "name": "notification_type",
           "type": "notification_method",
           "typeSchema": "public",
           "primaryKey": false,
-          "notNull": true,
-          "default": "'none'"
+          "notNull": true
         },
         "notification_target": {
           "name": "notification_target",
           "type": "text",
           "primaryKey": false,
-          "notNull": false
+          "notNull": true
         },
         "prompt": {
           "name": "prompt",
@@ -400,7 +406,6 @@
       "name": "notification_method",
       "schema": "public",
       "values": [
-        "none",
         "email",
         "webhook"
       ]

@@ -1,0 +1,1 @@
+ALTER TABLE "searches" ADD COLUMN "notification_opt_in" boolean DEFAULT true NOT NULL;

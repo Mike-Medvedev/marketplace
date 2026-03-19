@@ -15,12 +15,15 @@ async function executeTick(search: StoredSearch): Promise<void> {
 
     const results = await runSearch(search);
 
-    await notify(
-      search.notificationType,
-      search.notificationTarget,
-      search.query,
-      results.listings.map((l) => ({ id: l.id, title: l.title, price: l.price, url: l.url })),
-    );
+    if (search.notificationOptIn) {
+      await notify(
+        search.notificationType,
+        search.notificationTarget,
+        search.query,
+        results.listings.map((l) => ({ id: l.id, title: l.title, price: l.price, url: l.url })),
+        results.runId,
+      );
+    }
 
     logger.info(
       `[scheduler] Search "${search.query}" completed — ${results.listings.length} listings stored & notified`,
@@ -81,7 +84,7 @@ export function cancelSearch(searchId: string): void {
 
 export function rescheduleSearch(search: StoredSearch): void {
   cancelSearch(search.id);
-  if (search.status === "running") {
+  if (search.status === "running" && search.notificationOptIn) {
     scheduleSearch(search);
   }
 }

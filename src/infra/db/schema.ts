@@ -26,7 +26,6 @@ export const searchFrequencyEnum = pgEnum("search_frequency", [
 ]);
 
 export const notificationMethodEnum = pgEnum("notification_method", [
-  "none",
   "email",
   "webhook",
 ]);
@@ -60,8 +59,9 @@ export const searches = pgTable("searches", {
   dateListed: dateListedOptionEnum("date_listed").notNull(),
   frequency: searchFrequencyEnum().notNull(),
   listingsPerCheck: integer("listings_per_check").notNull().default(24),
-  notificationType: notificationMethodEnum("notification_type").notNull().default("none"),
-  notificationTarget: text("notification_target"),
+  notificationOptIn: boolean("notification_opt_in").notNull().default(true),
+  notificationType: notificationMethodEnum("notification_type").notNull(),
+  notificationTarget: text("notification_target").notNull(),
   prompt: text(),
   webhookFilterUrl: text("webhook_filter_url"),
   country: text(),
