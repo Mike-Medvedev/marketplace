@@ -23,7 +23,7 @@ export async function filterListings(
   logger.info(`[filterListings] Filtering ${listings.length} listings with AI prompt`);
   const client = new OpenAI();
   const { output_text, error } = await client.responses.create({
-    model: "gpt-5.2",
+    model: "gpt-4.1-mini",
     instructions: SYSTEM_PROMPT,
     input: [
       {
