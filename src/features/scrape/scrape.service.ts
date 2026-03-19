@@ -86,18 +86,24 @@ export async function searchMarketPlace(
   let pageNum = 1;
 
   do {
-    const page = await fetchOnePage(nextCursor, listingFetchDelayMs, searchConfig, userId, isAuthenticated, userAgent);
-    allListings.push(...page.listings);
-    pageNum++;
-    nextCursor = page.nextCursor;
-    logger.info("Fetched one page of listings...");
+    try {
+      const page = await fetchOnePage(nextCursor, listingFetchDelayMs, searchConfig, userId, isAuthenticated, userAgent);
+      allListings.push(...page.listings);
+      pageNum++;
+      nextCursor = page.nextCursor;
+      logger.info("Fetched one page of listings...");
+    } catch (error) {
+      logger.error(`[searchMarketPlace] Page ${pageNum} failed, returning ${allListings.length} listings collected so far:`, error);
+      if (allListings.length === 0) throw error;
+      break;
+    }
 
     if (nextCursor != null && pageNum <= pageCount && pageDelayMs > 0) {
       logger.info(`Delaying next page to avoid rate limit for ${pageDelayMs}ms`);
       await delay(pageDelayMs);
     }
   } while (nextCursor != null && pageNum <= pageCount);
-  logger.info("Successfully completed marketplace search!");
+  logger.info(`[searchMarketPlace] Completed — ${allListings.length} listings across ${pageNum - 1} pages`);
 
   return {
     listings: allListings,
