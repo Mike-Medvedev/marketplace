@@ -85,6 +85,13 @@
       "when": 1773951495262,
       "tag": "0011_fluffy_blacklash",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1774043220000,
+      "tag": "0012_freezing_smiling_tiger",
+      "breakpoints": true
     }
   ]
 }
