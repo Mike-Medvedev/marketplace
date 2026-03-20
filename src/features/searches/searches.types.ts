@@ -51,6 +51,7 @@ export const createSearchBodySchema = createInsertSchema(searches, {
   webhookFilterUrl: true,
   country: true,
   deduplicateResults: true,
+  keywordAllowlist: true,
 }).refine(
   (data) => data.location || data.country,
   { message: "Either location or country is required", path: ["location"] },
@@ -80,6 +81,7 @@ export const updateSearchBodySchema = createUpdateSchema(searches, {
   status: true,
   country: true,
   deduplicateResults: true,
+  keywordAllowlist: true,
 }).refine(
   (data) => !(data.prompt && data.webhookFilterUrl),
   { message: "Cannot set both prompt and webhookFilterUrl — choose one filter method", path: ["webhookFilterUrl"] },

@@ -235,6 +235,30 @@ function extractListingDetails(
   };
 }
 
+/**
+ * Filters listings by checking if the title contains at least one keyword
+ * from the allowlist. Comparison is case-insensitive.
+ * @param keywords - Terms to match against (user-configured per search).
+ */
+export function filterByKeywordAllowlist(
+  listings: Omit<MarketplaceListing, "photos" | "description">[],
+  keywords: string[],
+): Omit<MarketplaceListing, "photos" | "description">[] {
+  if (keywords.length === 0) return listings;
+
+  const lowerKeywords = keywords.map((k) => k.toLowerCase());
+
+  const filtered = listings.filter((listing) => {
+    const title = listing.title.toLowerCase();
+    return lowerKeywords.some((kw) => title.includes(kw));
+  });
+
+  logger.info(
+    `[filterByKeywordAllowlist] ${filtered.length}/${listings.length} listings passed keyword filter`,
+  );
+  return filtered;
+}
+
 async function addPhotosAndDescriptions(
   userId: string,
   rawListings: RawListing[],

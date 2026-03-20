@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { searchMarketPlace } from "@/features/scrape/scrape.service.ts";
+import { searchMarketPlace, filterByKeywordAllowlist } from "@/features/scrape/scrape.service.ts";
 import { triggerAutoResync } from "@/features/sync/sync.service.ts";
 import { FacebookSessionExpiredError } from "@/shared/errors/errors.ts";
 import { filterListings } from "@/features/filter/filter.service.ts";
@@ -271,6 +271,12 @@ export async function runSearch(search: StoredSearch): Promise<SearchRunResults>
     } else {
       const result = await searchMarketPlace(params, search.userId);
       listings = result.listings;
+    }
+
+    if (search.keywordAllowlist?.length) {
+      const before = listings.length;
+      listings = filterByKeywordAllowlist(listings, search.keywordAllowlist);
+      logger.info(`[runSearch] Keyword allowlist filter: ${before} -> ${listings.length}`);
     }
 
     await del(executingKey(search.id));

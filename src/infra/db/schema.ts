@@ -76,6 +76,7 @@ export const searches = pgTable("searches", {
   webhookFilterUrl: text("webhook_filter_url"),
   country: text(),
   deduplicateResults: boolean("deduplicate_results").notNull().default(false),
+  keywordAllowlist: text("keyword_allowlist").array(),
   status: searchStatusEnum().notNull().default("running"),
   lastRun: timestamp("last_run", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
