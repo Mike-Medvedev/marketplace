@@ -26,6 +26,7 @@ async function executeTick(search: StoredSearch): Promise<void> {
           search.notificationTarget,
           search.query,
           notifyListings.map((l) => ({ id: l.id, title: l.title, price: l.price, url: l.url })),
+          search.id,
           results.runId,
         );
       }

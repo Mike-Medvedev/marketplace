@@ -21,13 +21,14 @@ export async function notify(
   target: string,
   searchQuery: string,
   listings: ListingSummary[],
+  searchId: string,
   runId: string,
 ): Promise<void> {
   if (listings.length === 0) return;
 
   switch (method) {
     case "email":
-      return sendEmailNotification(target, searchQuery, listings, runId);
+      return sendEmailNotification(target, searchQuery, listings, searchId, runId);
     case "webhook":
       return sendWebhookNotification(target, searchQuery, listings);
   }
@@ -37,6 +38,7 @@ async function sendEmailNotification(
   to: string,
   searchQuery: string,
   listings: ListingSummary[],
+  searchId: string,
   runId: string,
 ): Promise<void> {
   const listingLines = listings
@@ -44,7 +46,7 @@ async function sendEmailNotification(
     .map((l) => `• ${l.title} — $${l.price}\n  ${l.url}`)
     .join("\n");
 
-  const resultsUrl = `https://marketscrape.com/results/${runId}`;
+  const resultsUrl = `https://marketscrape.com/searches/${searchId}/runs/${runId}/results`;
 
   await transporter.sendMail({
     from: env.SMTP_USER,
